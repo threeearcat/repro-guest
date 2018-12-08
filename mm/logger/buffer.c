@@ -96,8 +96,10 @@ static unsigned long syscall_logger_log_syscall_entry(unsigned long nr, const st
 	entry->entry_time = ktime_get();
 	entry->exit_time = ktime_zero;
 
+	debug_log_syscall_entry(idx, entry);
+
 	/* TODO: Change with bit operation */
-	this_cpu_write(rpr_log_idx, (idx + 1) % (unsigned long)NR_MAX_ENTRY);
+	per_cpu(rpr_log_idx, smp_processor_id()) = (idx + 1) % (unsigned long)NR_MAX_ENTRY;
 
 	local_irq_restore(flags);
 	return idx;
@@ -115,6 +117,9 @@ static void syscall_logger_log_syscall_exit(unsigned long idx)
 	ktime_t ktime_zero = { .tv64 = 0 };
 
 	entry = ((struct syscall_log_entry *)buf + idx);
+
+	debug_log_syscall_exit(idx, entry);
+
 	if (ktime_equal(entry->exit_time, ktime_zero)) {
 		entry->exit_time = ktime_get();
 	} else {

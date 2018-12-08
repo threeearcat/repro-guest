@@ -43,12 +43,49 @@ void debug_init(void)
 void debug_exit(void)
 {
 }
+
+static void print_entry(struct syscall_log_entry *entry)
+{
+	pr_info("  Entry addr:    %p\n", entry);
+	pr_info("    NR    :      %lu\n", entry->nr);
+	pr_info("    RDI   :      %lu\n", entry->rdi);
+	pr_info("    RSI   :      %lu\n", entry->rsi);
+	pr_info("    RDX   :      %lu\n", entry->rdx);
+	pr_info("    R10   :      %lu\n", entry->r10);
+	pr_info("    R8    :      %lu\n", entry->r8);
+	pr_info("    R9    :      %lu\n", entry->r9);
+	pr_info("    EnTime:      %lld\n", entry->entry_time.tv64);
+	pr_info("    ExTime:      %lld\n", entry->exit_time.tv64);
+
+}
+
+void debug_log_syscall_entry(unsigned long idx, struct syscall_log_entry *entry)
+{
+	pr_info("CPU #%d:         syscall_entry\n", smp_processor_id());
+	pr_info("  IDX:           %lu\n", idx);
+	print_entry(entry);
+}
+
+void debug_log_syscall_exit(unsigned long idx, struct syscall_log_entry *entry)
+{
+	pr_info("CPU #%d:         syscall_exit\n", smp_processor_id());
+	pr_info("  IDX:           %lu\n", idx);
+	print_entry(entry);
+}
 #else
 void debug_init(void)
 {
 }
 
 void debug_exit(void)
+{
+}
+
+void debug_log_syscall_entry(unsigned long idx, struct syscall_log_entry *entry)
+{
+}
+
+void debug_log_syscall_exit(unsigned long idx, struct syscall_log_entry *entry)
 {
 }
 #endif /* CONFIG_DEBUG_SYSCALL_LOGGER */
