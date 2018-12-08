@@ -1,1 +1,1 @@
-obj-y := buffer.o
+obj-y := buffer.o debug.o
