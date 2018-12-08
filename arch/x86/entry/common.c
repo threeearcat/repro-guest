@@ -31,6 +31,12 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/syscalls.h>
 
+#ifdef CONFIG_SYSCALL_LOGGER
+#include <linux/syscall_logger.h>
+
+struct syscall_logger_ops *syscall_logger_ops = NULL;
+#endif
+
 static struct thread_info *pt_regs_to_thread_info(struct pt_regs *regs)
 {
 	unsigned long top_of_stack =
@@ -278,6 +284,11 @@ __visible void do_syscall_64(struct pt_regs *regs)
 
 	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
 		nr = syscall_trace_enter(regs);
+
+#ifdef CONFIG_SYSCALL_LOGGER
+	if (syscall_logger_ops)
+		syscall_logger_ops->log_one_syscall(nr, regs);
+#endif
 
 	/*
 	 * NB: Native and x32 syscalls are dispatched from the same

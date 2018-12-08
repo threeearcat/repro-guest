@@ -38,7 +38,7 @@ struct syscall_log_entry {
 DECLARE_PER_CPU(void *, rpr_log_buf);
 
 #define RPR_LOGBUF(cpu) per_cpu(rpr_log_buf, cpu)
-#define RPR_LOGBUF_CURCPU BUFFER(smp_processor_id())
+#define RPR_LOGBUF_CURCPU this_cpu_read(rpr_log_buf)
 
 #else
 /* Current implementation supports X86_64. Abort compilation. */
