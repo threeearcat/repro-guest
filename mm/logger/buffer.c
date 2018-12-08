@@ -20,8 +20,6 @@ static int __init syscall_logger_init(void)
 	int cpu;
 	void *buf;
 
-	debug_syscall_logger_init();
-
 	for_each_possible_cpu(cpu) {
 		/* I think we don't need contiguous pages */
 		buf = vmalloc(BUFFER_SIZE);
@@ -37,7 +35,7 @@ static int __init syscall_logger_init(void)
 	 */
 	syscall_logger_ops = &__logger_ops;
 
-	debug_after_syscall_logger_init();
+	debug_init();
 
 	return 0;
 
@@ -54,7 +52,7 @@ static void __exit syscall_logger_exit(void)
 {
 	int cpu;
 
-	debug_syscall_logger_exit();
+	debug_exit();
 
 	/* disallow syscall entry to call logger functions first */
 	syscall_logger_ops = NULL;
@@ -81,7 +79,7 @@ static unsigned long syscall_logger_log_syscall_entry(unsigned long nr, const st
 	 * TODO: Can I make this function as a transaction like slub?
 	 */
 	local_irq_save(flags);
-	idx = this_cpu_read(rpr_log_idx);;
+	idx = this_cpu_read(rpr_log_idx);
 
 	entry = ((struct syscall_log_entry *)buf + idx);
 
