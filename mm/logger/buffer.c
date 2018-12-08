@@ -98,8 +98,7 @@ static unsigned long syscall_logger_log_syscall_entry(unsigned long nr, const st
 
 	debug_log_syscall_entry(idx, entry);
 
-	/* TODO: Change with bit operation */
-	per_cpu(rpr_log_idx, smp_processor_id()) = (idx + 1) % (unsigned long)NR_MAX_ENTRY;
+	per_cpu(rpr_log_idx, smp_processor_id()) = (idx + 1) & NR_MAX_ENTRY_MASK;
 
 	local_irq_restore(flags);
 	return idx;
@@ -115,19 +114,22 @@ static void syscall_logger_log_syscall_exit(unsigned long idx)
 	void *buf = RPR_LOGBUF_CURCPU;
 	struct syscall_log_entry *entry;
 	ktime_t ktime_zero = { .tv64 = 0 };
+	char bad_happened;
 
 	entry = ((struct syscall_log_entry *)buf + idx);
+	/* Other syscall already wrote timestamp on this entry. It
+	 * must not be happend.
+	 */
+	bad_happened = !(ktime_equal(entry->exit_time, ktime_zero));
+	entry->exit_time = ktime_get();
 
 	debug_log_syscall_exit(idx, entry);
 
-	if (ktime_equal(entry->exit_time, ktime_zero)) {
-		entry->exit_time = ktime_get();
-	} else {
-		/* Other syscall already wrote timestamp on this entry. It
-		 * must not be happend.
-		 */
+	/* Kill a kernel after print out some useful information for
+	 * debugging.
+	 */
+	if (bad_happened)
 		BUG();
-	}
 
 	/* Don't return an error code in this function. If this function
 	 * fails, just kill a kernel.

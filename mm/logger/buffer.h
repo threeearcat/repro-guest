@@ -28,12 +28,13 @@ struct syscall_log_entry {
 	char pad[56];
 } __attribute__ ((__aligned__(128)));
 
-#define ENTRY_MASK 7
+#define ENTRY_SIZE_BITS 7
 #define ENTRY_SIZE sizeof(struct syscall_log_entry)
 
 #define NR_BUFFER_PAGE 1
 #define BUFFER_SIZE (PAGE_SIZE * NR_BUFFER_PAGE)
-#define NR_MAX_ENTRY (NR_BUFFER_PAGE * PAGE_SIZE) >> (ENTRY_MASK)
+#define NR_MAX_ENTRY ((NR_BUFFER_PAGE * PAGE_SIZE) >> (ENTRY_SIZE_BITS))
+#define NR_MAX_ENTRY_MASK (NR_MAX_ENTRY - 1)
 
 DECLARE_PER_CPU(void *, rpr_log_buf);
 
