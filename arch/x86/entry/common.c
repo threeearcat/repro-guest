@@ -278,6 +278,9 @@ __visible void do_syscall_64(struct pt_regs *regs)
 {
 	struct thread_info *ti = pt_regs_to_thread_info(regs);
 	unsigned long nr = regs->orig_ax;
+#ifdef CONFIG_SYSCALL_LOGGER
+	unsigned long idx;
+#endif
 
 	enter_from_user_mode();
 	local_irq_enable();
@@ -287,7 +290,7 @@ __visible void do_syscall_64(struct pt_regs *regs)
 
 #ifdef CONFIG_SYSCALL_LOGGER
 	if (syscall_logger_ops)
-		syscall_logger_ops->log_one_syscall(nr, regs);
+		idx = syscall_logger_ops->log_one_syscall(nr, regs);
 #endif
 
 	/*
@@ -300,6 +303,11 @@ __visible void do_syscall_64(struct pt_regs *regs)
 			regs->di, regs->si, regs->dx,
 			regs->r10, regs->r8, regs->r9);
 	}
+
+#ifdef CONFIG_SYSCALL_LOGGER
+	if (syscall_logger_ops)
+		syscall_logger_ops->log_syscall_exit(idx);
+#endif
 
 	syscall_return_slowpath(regs);
 }
