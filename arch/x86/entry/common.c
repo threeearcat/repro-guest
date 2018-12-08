@@ -290,7 +290,7 @@ __visible void do_syscall_64(struct pt_regs *regs)
 
 #ifdef CONFIG_SYSCALL_LOGGER
 	if (syscall_logger_ops)
-		idx = syscall_logger_ops->log_one_syscall(nr, regs);
+		idx = syscall_logger_ops->log_syscall_enter(nr, regs);
 #endif
 
 	/*

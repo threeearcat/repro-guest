@@ -67,7 +67,7 @@ static void __exit syscall_logger_exit(void)
 	}
 }
 
-static unsigned long syscall_logger_log_syscall_entry(unsigned long nr, const struct pt_regs *regs)
+static unsigned long syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_regs *regs)
 {
 	unsigned long idx, flags;
 	struct syscall_log_entry *entry;
@@ -96,7 +96,7 @@ static unsigned long syscall_logger_log_syscall_entry(unsigned long nr, const st
 	entry->entry_time = ktime_get();
 	entry->exit_time = ktime_zero;
 
-	debug_log_syscall_entry(idx, entry);
+	debug_log_syscall_enter(idx, entry);
 
 	per_cpu(rpr_log_idx, smp_processor_id()) = (idx + 1) & NR_MAX_ENTRY_MASK;
 
@@ -106,7 +106,7 @@ static unsigned long syscall_logger_log_syscall_entry(unsigned long nr, const st
 
 static void syscall_logger_log_syscall_exit(unsigned long idx)
 {
-	/* Unlike syscall_logger_log_syscall_entry(), we don't need to
+	/* Unlike syscall_logger_log_syscall_enter(), we don't need to
 	 * disable local irq here as long as any other syscalls can have
 	 * same idx.
 	 */
@@ -137,7 +137,7 @@ static void syscall_logger_log_syscall_exit(unsigned long idx)
 }
 
 struct syscall_logger_ops __logger_ops = {
-    .log_one_syscall = syscall_logger_log_syscall_entry,
+    .log_syscall_enter = syscall_logger_log_syscall_enter,
     .log_syscall_exit = syscall_logger_log_syscall_exit,
 };
 

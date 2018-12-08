@@ -60,9 +60,9 @@ static void print_entry(struct syscall_log_entry *entry)
 
 }
 
-void debug_log_syscall_entry(unsigned long idx, struct syscall_log_entry *entry)
+void debug_log_syscall_enter(unsigned long idx, struct syscall_log_entry *entry)
 {
-	pr_info("CPU #%d:         syscall_entry\n", smp_processor_id());
+	pr_info("CPU #%d:         syscall_enter\n", smp_processor_id());
 	pr_info("  IDX:           %lu\n", idx);
 	print_entry(entry);
 }
@@ -82,7 +82,7 @@ void debug_exit(void)
 {
 }
 
-void debug_log_syscall_entry(unsigned long idx, struct syscall_log_entry *entry)
+void debug_log_syscall_enter(unsigned long idx, struct syscall_log_entry *entry)
 {
 }
 
