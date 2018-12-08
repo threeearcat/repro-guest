@@ -69,7 +69,7 @@ static void __exit syscall_logger_exit(void)
 	}
 }
 
-static unsigned long syscall_logger_log_one_syscall(unsigned long nr, const struct pt_regs *regs)
+static unsigned long syscall_logger_log_syscall_entry(unsigned long nr, const struct pt_regs *regs)
 {
 	unsigned long idx, flags;
 	struct syscall_log_entry *entry;
@@ -132,7 +132,7 @@ static void syscall_logger_log_syscall_exit(unsigned long idx)
 }
 
 struct syscall_logger_ops __logger_ops = {
-    .log_one_syscall = syscall_logger_log_one_syscall,
+    .log_one_syscall = syscall_logger_log_syscall_entry,
     .log_syscall_exit = syscall_logger_log_syscall_exit,
 };
 
