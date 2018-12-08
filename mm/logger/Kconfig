@@ -1,0 +1,8 @@
+config SYSCALL_LOGGER
+	bool "Logging syscalls and their arguments in a per-cpu ring buffer"
+	default y
+
+config DEBUG_SYSCALL_LOGGER
+	bool "Debug syscall logger"
+	default y
+	depends on SYSCALL_LOGGER
