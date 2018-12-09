@@ -42,7 +42,7 @@ DECLARE_PER_CPU(void *, rpr_log_buf);
 #define RPR_LOGBUF_CURCPU this_cpu_read(rpr_log_buf)
 
 #else
-/* Current implementation supports X86_64. Abort compilation. */
+/* Current implementation supports only x86_64. Abort compilation. */
 /* TODO: What is the statement that I can use in a header file? */
 BUILD_BUG_ON("Not supported architecture");
 #endif /* CONFIG_X86_64 */
