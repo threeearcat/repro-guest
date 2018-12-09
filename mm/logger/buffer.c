@@ -21,8 +21,10 @@ static int __init syscall_logger_init(void)
 	void *buf;
 
 	for_each_possible_cpu(cpu) {
-		/* I think we don't need contiguous pages */
-		buf = vmalloc(BUFFER_SIZE);
+		/* I think contiguous pages are better in performance. I
+		 * haven't conducted a measurement though.
+		 */
+		buf = kmalloc(BUFFER_SIZE);
 		if (!buf)
 			goto page_alloc_failed;
 
