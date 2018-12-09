@@ -67,9 +67,10 @@ static void __exit syscall_logger_exit(void)
 	}
 }
 
-static unsigned long syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_regs *regs)
+static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_regs *regs,
+											 unsigned long *idxp, unsigned long *cpup)
 {
-	unsigned long idx, flags;
+	unsigned long idx, cpu, flags;
 	struct syscall_log_entry *entry;
 	ktime_t ktime_zero = { .tv64 = 0 };
 	void *buf = RPR_LOGBUF_CURCPU;
@@ -80,6 +81,7 @@ static unsigned long syscall_logger_log_syscall_enter(unsigned long nr, const st
 	 */
 	local_irq_save(flags);
 	idx = this_cpu_read(rpr_log_idx);
+	cpu = smp_processor_id();
 
 	entry = ((struct syscall_log_entry *)buf + idx);
 
@@ -98,20 +100,29 @@ static unsigned long syscall_logger_log_syscall_enter(unsigned long nr, const st
 
 	debug_log_syscall_enter(idx, entry);
 
-	per_cpu(rpr_log_idx, smp_processor_id()) = (idx + 1) & NR_MAX_ENTRY_MASK;
+	per_cpu(rpr_log_idx, cpu) = (idx + 1) & NR_MAX_ENTRY_MASK;
+
+	/* Is is possible that a syscall is migrated by a scheduler during
+	 * its execution. We need to return both of idx and cpu in order
+	 * not to compromise other CPUs ring buffer.
+	 */
+	/* TODO: Is this important to our research project? Does this give
+	 * any fun chance to make things difficult?
+	 */
+	*idxp = idx;
+	*cpup = cpu;
 
 	local_irq_restore(flags);
-	return idx;
 }
 
-static void syscall_logger_log_syscall_exit(unsigned long idx)
+static void syscall_logger_log_syscall_exit(unsigned long idx, unsigned long cpu)
 {
 	/* Unlike syscall_logger_log_syscall_enter(), we don't need to
 	 * disable local irq here as long as any other syscalls can have
 	 * same idx.
 	 */
 
-	void *buf = RPR_LOGBUF_CURCPU;
+	void *buf = RPR_LOGBUF(cpu);
 	struct syscall_log_entry *entry;
 	ktime_t ktime_zero = { .tv64 = 0 };
 	char bad_happened;
@@ -121,15 +132,15 @@ static void syscall_logger_log_syscall_exit(unsigned long idx)
 	 * must not be happend.
 	 */
 	bad_happened = !(ktime_equal(entry->exit_time, ktime_zero));
-	entry->exit_time = ktime_get();
 
-	debug_log_syscall_exit(idx, entry);
-
-	/* Kill a kernel after print out some useful information for
-	 * debugging.
+	/* If it is happened, kill a kernel after print out some useful
+	 * information for debugging.
 	 */
+	debug_log_syscall_exit(idx, entry);
 	if (bad_happened)
 		BUG();
+
+	entry->exit_time = ktime_get();
 
 	/* Don't return an error code in this function. If this function
 	 * fails, just kill a kernel.
