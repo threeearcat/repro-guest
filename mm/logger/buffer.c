@@ -1,7 +1,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/vmalloc.h>
+#include <linux/slab.h>
 
 #include <linux/syscall_logger.h>
 
@@ -24,7 +24,7 @@ static int __init syscall_logger_init(void)
 		/* I think contiguous pages are better in performance. I
 		 * haven't conducted a measurement though.
 		 */
-		buf = kmalloc(BUFFER_SIZE);
+		buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);
 		if (!buf)
 			goto page_alloc_failed;
 
@@ -44,7 +44,7 @@ static int __init syscall_logger_init(void)
  page_alloc_failed:
 	repro_debug("Memory allocation failed");
 	for_each_possible_cpu(cpu) {
-		vfree(RPR_LOGBUF(cpu));
+		kfree(RPR_LOGBUF(cpu));
 	}
 
 	return -ENOMEM;
@@ -65,7 +65,7 @@ static void __exit syscall_logger_exit(void)
 
 	/* Free allocated memory */
 	for_each_possible_cpu(cpu) {
-		vfree(RPR_LOGBUF(cpu));
+		kfree(RPR_LOGBUF(cpu));
 	}
 }
 
