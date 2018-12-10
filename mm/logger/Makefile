@@ -1,1 +1,1 @@
-obj-y := buffer.o debug.o
+obj-y := logger.o debug.o
