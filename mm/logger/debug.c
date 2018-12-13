@@ -16,7 +16,7 @@ void __repro_debug(const char *fmt, ...)
 	vaf.fmt = fmt;
 	vaf.va = &args;
 
-	pr_err("%p\n", &vaf);
+	pr_err("%pV\n", &vaf);
 
 	va_end(args);
 }
