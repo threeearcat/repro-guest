@@ -6,6 +6,16 @@
 
 #ifdef CONFIG_X86_64
 
+/* per-CPU logger state */
+struct syscall_log {
+	void *buf;
+	unsigned long idx;
+#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
+	/* Statistics for each syscalls */
+	unsigned int *stats;
+#endif
+};
+
 struct syscall_log_entry {
 	/* Syscall number */
 	unsigned long nr;
@@ -34,12 +44,9 @@ struct syscall_log_entry {
 #define NR_BUFFER_PAGE 1
 #define BUFFER_SIZE (PAGE_SIZE * NR_BUFFER_PAGE)
 #define NR_MAX_ENTRY ((NR_BUFFER_PAGE * PAGE_SIZE) >> (ENTRY_SIZE_BITS))
-#define NR_MAX_ENTRY_MASK (NR_MAX_ENTRY - 1)
+#define MAX_ENTRY_MASK (NR_MAX_ENTRY - 1)
 
-DECLARE_PER_CPU(void *, rpr_log_buf);
-
-#define RPR_LOGBUF(cpu) per_cpu(rpr_log_buf, cpu)
-#define RPR_LOGBUF_CURCPU this_cpu_read(rpr_log_buf)
+DECLARE_PER_CPU(struct syscall_log, syscall_log);
 
 #else
 /* Current implementation supports only x86_64. Abort compilation. */

@@ -6,3 +6,8 @@ config DEBUG_SYSCALL_LOGGER
 	bool "Debug syscall logger"
 	default y
 	depends on SYSCALL_LOGGER
+
+config SYSCALL_LOGGER_LOG_STATISTICS
+	bool "Log statistics"
+	default y
+	depends on SYSCALL_LOGGER

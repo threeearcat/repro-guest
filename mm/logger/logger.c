@@ -2,6 +2,7 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
+#include <linux/audit.h>
 
 #include <linux/syscall_logger.h>
 
@@ -10,8 +11,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Dae R. Jeong");
 
-DEFINE_PER_CPU(void *, rpr_log_buf);
-static DEFINE_PER_CPU(unsigned long, rpr_log_idx);
+DEFINE_PER_CPU(struct syscall_log, syscall_log);
 
 struct syscall_logger_ops __logger_ops;
 
@@ -19,17 +19,30 @@ static int __init syscall_logger_init(void)
 {
 	int cpu;
 	void *buf;
+	struct syscall_log *log;
+#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
+	int *stats;
+#endif
 
 	for_each_possible_cpu(cpu) {
+		log = &per_cpu(syscall_log, cpu);
+
 		/* I think contiguous pages are better in performance. I
 		 * haven't conducted a measurement though.
 		 */
 		buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);
 		if (!buf)
-			goto page_alloc_failed;
+			goto mem_alloc_failed;
+		log->buf = buf;
 
-		RPR_LOGBUF(cpu) = buf;
-		per_cpu(rpr_log_idx, cpu) = 0;
+#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
+		stats = kzalloc(NR_syscalls * sizeof(unsigned int), GFP_KERNEL);
+		if (!stats)
+			goto mem_alloc_failed;
+		log->stats = stats;
+#endif
+
+		log->idx = 0;
 	}
 
 	/* Now per-cpu ring buffers are made up and we can log
@@ -41,10 +54,14 @@ static int __init syscall_logger_init(void)
 
 	return 0;
 
- page_alloc_failed:
-	repro_debug("Memory allocation failed");
+ mem_alloc_failed:
+	repro_debug("Mem allocation failed");
 	for_each_possible_cpu(cpu) {
-		kfree(RPR_LOGBUF(cpu));
+		log = &per_cpu(syscall_log, cpu);
+		kfree(log->buf);
+#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
+		kfree(log->stats);
+#endif
 	}
 
 	return -ENOMEM;
@@ -53,6 +70,7 @@ static int __init syscall_logger_init(void)
 static void __exit syscall_logger_exit(void)
 {
 	int cpu;
+	struct syscall_log *log;
 
 	debug_exit();
 
@@ -65,7 +83,12 @@ static void __exit syscall_logger_exit(void)
 
 	/* Free allocated memory */
 	for_each_possible_cpu(cpu) {
-		kfree(RPR_LOGBUF(cpu));
+		log = &per_cpu(syscall_log, cpu);
+
+		kfree(log->buf);
+#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
+		kfree(log->stats);
+#endif
 	}
 }
 
@@ -73,19 +96,22 @@ static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_r
 											 unsigned long *idxp, unsigned long *cpup)
 {
 	unsigned long idx, cpu, flags;
+	struct syscall_log *log;
 	struct syscall_log_entry *entry;
 	ktime_t ktime_zero = { .tv64 = 0 };
-	void *buf = RPR_LOGBUF_CURCPU;
 
-	/* This function should disable local irq in order to save entry
+	cpu = smp_processor_id();
+	log = &per_cpu(syscall_log, cpu);
+
+	/* This function should disable local irq in order to fetch idx
 	 * atomically.
-	 * TODO: Can I make this function as a transaction like slub?
 	 */
 	local_irq_save(flags);
-	idx = this_cpu_read(rpr_log_idx);
-	cpu = smp_processor_id();
+	idx = log->idx;
+	log->idx = (idx + 1) & MAX_ENTRY_MASK;
+	local_irq_restore(flags);
 
-	entry = ((struct syscall_log_entry *)buf + idx);
+	entry = ((struct syscall_log_entry *)(log->buf) + idx);
 
 	/* See do_syscall_64. */
 	entry->nr = nr;
@@ -102,8 +128,6 @@ static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_r
 
 	debug_log_syscall_enter(idx, entry);
 
-	per_cpu(rpr_log_idx, cpu) = (idx + 1) & NR_MAX_ENTRY_MASK;
-
 	/* Is is possible that a syscall is migrated by a scheduler during
 	 * its execution. We need to return both of idx and cpu in order
 	 * not to compromise other CPUs ring buffer.
@@ -113,8 +137,6 @@ static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_r
 	 */
 	*idxp = idx;
 	*cpup = cpu;
-
-	local_irq_restore(flags);
 }
 
 static void syscall_logger_log_syscall_exit(unsigned long idx, unsigned long cpu)
@@ -124,12 +146,13 @@ static void syscall_logger_log_syscall_exit(unsigned long idx, unsigned long cpu
 	 * same idx.
 	 */
 
-	void *buf = RPR_LOGBUF(cpu);
+	struct syscall_log *log;
 	struct syscall_log_entry *entry;
 	ktime_t ktime_zero = { .tv64 = 0 };
 	char bad_happened;
 
-	entry = ((struct syscall_log_entry *)buf + idx);
+	log = &per_cpu(syscall_log, cpu);
+	entry = ((struct syscall_log_entry *)(log->buf) + idx);
 	/* Other syscall already wrote timestamp on this entry. It
 	 * must not be happend.
 	 */

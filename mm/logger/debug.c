@@ -25,6 +25,7 @@ void __repro_debug(const char *fmt, ...)
 void debug_init(void)
 {
 	int cpu;
+	struct syscall_log *log;
 
 	/* Print out macro values */
 	pr_info("ENTRY_SIZE:          %lu\n", ENTRY_SIZE);
@@ -32,12 +33,17 @@ void debug_init(void)
 	pr_info("NR_BUFFER_PAGE:      %d\n", NR_BUFFER_PAGE);
 	pr_info("BUFFER_SIZE:         %lx\n", BUFFER_SIZE);
 	pr_info("NR_MAX_ENTRY:        %lu\n", NR_MAX_ENTRY);
-	pr_info("NR_MAX_ENTRY_MASK:   %lx\n", NR_MAX_ENTRY_MASK);
+	pr_info("MAX_ENTRY_MASK:      %lx\n", MAX_ENTRY_MASK);
 
 	/* Print out addresses of each of buffer pages */
 	for_each_possible_cpu(cpu) {
-		pr_info("CPU #%d:             %p\n",
-				cpu, per_cpu(rpr_log_buf, cpu));
+		log = &per_cpu(syscall_log, cpu);
+
+		pr_info("CPU #%d:\n", cpu);
+		pr_info("    buf:             %p\n", log->buf);
+#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
+		pr_info("    stats:           %p\n", log->stats);
+#endif
 	}
 }
 
