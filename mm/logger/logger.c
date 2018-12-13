@@ -126,6 +126,11 @@ static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_r
 	entry->entry_time = ktime_get();
 	entry->exit_time = ktime_zero;
 
+#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
+	/* Increase an execution number to record statistics */
+	(log->stats)[nr]++;
+#endif
+
 	debug_log_syscall_enter(idx, entry);
 
 	/* Is is possible that a syscall is migrated by a scheduler during
