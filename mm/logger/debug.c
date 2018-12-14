@@ -3,6 +3,7 @@
 #include <linux/init.h>
 #include <linux/percpu.h>
 #include <linux/kernel.h>
+#include <linux/spinlock.h>
 
 #include "buffer.h"
 
@@ -22,6 +23,9 @@ void __repro_debug(const char *fmt, ...)
 }
 
 #ifdef CONFIG_DEBUG_SYSCALL_LOGGER
+
+static DEFINE_SPINLOCK(debug_spinlock);
+
 void debug_init(void)
 {
 	int cpu;
@@ -68,16 +72,20 @@ static void print_entry(struct syscall_log_entry *entry)
 
 void debug_log_syscall_enter(unsigned long idx, struct syscall_log_entry *entry)
 {
+	spin_lock(&debug_spinlock);
 	pr_info("CPU #%d:         syscall_enter\n", smp_processor_id());
 	pr_info("  IDX:           %lu\n", idx);
 	print_entry(entry);
+	spin_unlock(&debug_spinlock);
 }
 
 void debug_log_syscall_exit(unsigned long idx, struct syscall_log_entry *entry)
 {
+	spin_lock(&debug_spinlock);
 	pr_info("CPU #%d:         syscall_exit\n", smp_processor_id());
 	pr_info("  IDX:           %lu\n", idx);
 	print_entry(entry);
+	spin_unlock(&debug_spinlock);
 }
 #else
 void debug_init(void)
