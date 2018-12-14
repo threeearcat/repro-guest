@@ -279,7 +279,7 @@ __visible void do_syscall_64(struct pt_regs *regs)
 	struct thread_info *ti = pt_regs_to_thread_info(regs);
 	unsigned long nr = regs->orig_ax;
 #ifdef CONFIG_SYSCALL_LOGGER
-	unsigned long idx, cpu;
+	struct syscall_log_entry entry;
 #endif
 
 	enter_from_user_mode();
@@ -296,18 +296,17 @@ __visible void do_syscall_64(struct pt_regs *regs)
 	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
 #ifdef CONFIG_SYSCALL_LOGGER
 		/* In a slow path, we want to exclude syscalls that are
-		 * rejected already. So, syscall logger logs syscalls in a
-		 * slow path, besides its logging in a fast path.
+		 * rejected already.
 		 */
 		if (syscall_logger_ops)
-			syscall_logger_ops->log_syscall_enter(nr, regs, &idx, &cpu);
+			syscall_logger_ops->log_syscall_enter(nr, regs, &entry);
 #endif
 		regs->ax = sys_call_table[nr & __SYSCALL_MASK](
 			regs->di, regs->si, regs->dx,
 			regs->r10, regs->r8, regs->r9);
 #ifdef CONFIG_SYSCALL_LOGGER
 		if (syscall_logger_ops)
-			syscall_logger_ops->log_syscall_exit(idx, cpu);
+			syscall_logger_ops->log_syscall_exit(&entry);
 #endif
 	}
 

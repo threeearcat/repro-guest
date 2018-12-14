@@ -15,7 +15,21 @@ DEFINE_PER_CPU(struct syscall_log, syscall_log);
 
 struct syscall_logger_ops __logger_ops;
 
-static int __init syscall_logger_init(void)
+static void destroy_log_buffer(void)
+{
+	int cpu;
+	struct syscall_log *log;
+
+	for_each_possible_cpu(cpu) {
+		log = &per_cpu(syscall_log, cpu);
+		kfree(log->buf);
+#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
+		kfree(log->stats);
+#endif
+	}
+}
+
+static int create_log_buffer(void)
 {
 	int cpu;
 	void *buf;
@@ -23,7 +37,7 @@ static int __init syscall_logger_init(void)
 #ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
 	int *stats;
 #endif
-
+	
 	for_each_possible_cpu(cpu) {
 		log = &per_cpu(syscall_log, cpu);
 
@@ -45,6 +59,21 @@ static int __init syscall_logger_init(void)
 		log->idx = 0;
 	}
 
+	return 0;
+
+ mem_alloc_failed:
+	repro_debug("Mem allocation failed");
+	destroy_log_buffer();
+
+	return -ENOMEM;
+}
+
+static int __init syscall_logger_init(void)
+{
+	int ret;
+	/* Create per-CPU log buffer first */
+	ret = create_log_buffer();
+
 	/* Now per-cpu ring buffers are made up and we can log
 	 * syscalls. Let's allow syscall entry to call logger functions.
 	 */
@@ -52,26 +81,11 @@ static int __init syscall_logger_init(void)
 
 	debug_init();
 
-	return 0;
-
- mem_alloc_failed:
-	repro_debug("Mem allocation failed");
-	for_each_possible_cpu(cpu) {
-		log = &per_cpu(syscall_log, cpu);
-		kfree(log->buf);
-#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
-		kfree(log->stats);
-#endif
-	}
-
-	return -ENOMEM;
+	return ret;
 }
 
 static void __exit syscall_logger_exit(void)
 {
-	int cpu;
-	struct syscall_log *log;
-
 	debug_exit();
 
 	/* disallow syscall entry to call logger functions first */
@@ -81,37 +95,21 @@ static void __exit syscall_logger_exit(void)
 	 * syscalls. Wait until they finish their jobs.
 	 */
 
-	/* Free allocated memory */
-	for_each_possible_cpu(cpu) {
-		log = &per_cpu(syscall_log, cpu);
-
-		kfree(log->buf);
-#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
-		kfree(log->stats);
-#endif
-	}
+	/* Now we can destroy log buffer */
+	destroy_log_buffer();
 }
 
+/* Should be called with allocated entry */
 static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_regs *regs,
-											 unsigned long *idxp, unsigned long *cpup)
+											 struct syscall_log_entry *entry)
 {
-	unsigned long idx, cpu, flags;
-	struct syscall_log *log;
-	struct syscall_log_entry *entry;
-	ktime_t ktime_zero = { .tv64 = 0 };
-
-	cpu = smp_processor_id();
-	log = &per_cpu(syscall_log, cpu);
-
-	/* This function should disable local irq in order to fetch idx
-	 * atomically.
+	/* TODO: We need only entry_time here. Do we really need the
+	 * _log_syscall_enter() function?
 	 */
-	local_irq_save(flags);
-	idx = log->idx;
-	log->idx = (idx + 1) & MAX_ENTRY_MASK;
-	local_irq_restore(flags);
 
-	entry = ((struct syscall_log_entry *)(log->buf) + idx);
+	/* Pre-fill data into entry. entry will be copied to per-CPU log
+	 * buffer when the syscall exits.
+	 */
 
 	/* See do_syscall_64. */
 	entry->nr = nr;
@@ -124,57 +122,45 @@ static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_r
 
 	/* Log entry_time first. exit_time will be logged later. */
 	entry->entry_time = ktime_get();
-	entry->exit_time = ktime_zero;
 
-#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
-	/* Increase an execution number to record statistics */
-	(log->stats)[nr]++;
-#endif
+	debug_log_syscall_enter(entry);
 
-	debug_log_syscall_enter(idx, entry);
-
-	/* Is is possible that a syscall is migrated by a scheduler during
-	 * its execution. We need to return both of idx and cpu in order
-	 * not to compromise other CPUs ring buffer.
+	/* It is possible that a syscall is migrated by a scheduler during
+	 * its execution. Is this important to our research project? Does
+	 * this give any fun chance to make things difficult?
 	 */
-	/* TODO: Is this important to our research project? Does this give
-	 * any fun chance to make things difficult?
-	 */
-	*idxp = idx;
-	*cpup = cpu;
 }
 
-static void syscall_logger_log_syscall_exit(unsigned long idx, unsigned long cpu)
+static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry)
 {
-	/* Unlike syscall_logger_log_syscall_enter(), we don't need to
-	 * disable local irq here as long as any other syscalls can have
-	 * same idx.
-	 */
-
+	unsigned long idx, flags;
 	struct syscall_log *log;
-	struct syscall_log_entry *entry;
-	ktime_t ktime_zero = { .tv64 = 0 };
-	char bad_happened;
 
-	log = &per_cpu(syscall_log, cpu);
-	entry = ((struct syscall_log_entry *)(log->buf) + idx);
-	/* Other syscall already wrote timestamp on this entry. It
-	 * must not be happend.
-	 */
-	bad_happened = !(ktime_equal(entry->exit_time, ktime_zero));
-
-	/* If it is happened, kill a kernel after print out some useful
-	 * information for debugging.
-	 */
-	debug_log_syscall_exit(idx, entry);
-	if (bad_happened)
-		BUG();
-
+	/* Write exit_time. Now we have the full-filled entry */
 	entry->exit_time = ktime_get();
 
-	/* Don't return an error code in this function. If this function
-	 * fails, just kill a kernel.
+	/* Retrieving idx. local IRQ should be disabled here in order to
+	 * avoid race condition on idx.
 	 */
+	local_irq_save(flags);
+	log = &per_cpu(syscall_log, smp_processor_id());
+	idx = log->idx;
+	log->idx = (idx + 1) & MAX_ENTRY_MASK;
+	local_irq_restore(flags);
+
+#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
+	/* Increase an execution number to record statistics. */
+	(log->stats)[entry->nr]++;
+#endif
+
+	/* Copy entry into per-CPU log buffer. If it is guaranteed that no
+	 * other thread in this CPU have the same idx, we don't have to
+	 * hold a lock here. No one access the same memory.
+	 */
+	memcpy(((struct syscall_log_entry *)(log->buf) + idx),
+		   entry, sizeof(struct syscall_log_entry));
+
+	debug_log_syscall_exit(idx, entry);
 }
 
 struct syscall_logger_ops __logger_ops = {
