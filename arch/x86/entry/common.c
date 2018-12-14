@@ -288,26 +288,28 @@ __visible void do_syscall_64(struct pt_regs *regs)
 	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
 		nr = syscall_trace_enter(regs);
 
-#ifdef CONFIG_SYSCALL_LOGGER
-	if (syscall_logger_ops)
-		syscall_logger_ops->log_syscall_enter(nr, regs, &idx, &cpu);
-#endif
-
 	/*
 	 * NB: Native and x32 syscalls are dispatched from the same
 	 * table.  The only functional difference is the x32 bit in
 	 * regs->orig_ax, which changes the behavior of some syscalls.
 	 */
 	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
+#ifdef CONFIG_SYSCALL_LOGGER
+		/* In a slow path, we want to exclude syscalls that are
+		 * rejected already. So, syscall logger logs syscalls in a
+		 * slow path, besides its logging in a fast path.
+		 */
+		if (syscall_logger_ops)
+			syscall_logger_ops->log_syscall_enter(nr, regs, &idx, &cpu);
+#endif
 		regs->ax = sys_call_table[nr & __SYSCALL_MASK](
 			regs->di, regs->si, regs->dx,
 			regs->r10, regs->r8, regs->r9);
-	}
-
 #ifdef CONFIG_SYSCALL_LOGGER
-	if (syscall_logger_ops)
-		syscall_logger_ops->log_syscall_exit(idx, cpu);
+		if (syscall_logger_ops)
+			syscall_logger_ops->log_syscall_exit(idx, cpu);
 #endif
+	}
 
 	syscall_return_slowpath(regs);
 }
