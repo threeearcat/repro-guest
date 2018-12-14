@@ -7,6 +7,7 @@
 #include <linux/syscall_logger.h>
 
 #include "buffer.h"
+#include "proc.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Dae R. Jeong");
@@ -79,6 +80,8 @@ static int __init syscall_logger_init(void)
 	 */
 	syscall_logger_ops = &__logger_ops;
 
+	syscall_logger_proc_init();
+
 	debug_init();
 
 	return ret;
@@ -87,6 +90,8 @@ static int __init syscall_logger_init(void)
 static void __exit syscall_logger_exit(void)
 {
 	debug_exit();
+
+	syscall_logger_proc_exit();
 
 	/* disallow syscall entry to call logger functions first */
 	syscall_logger_ops = NULL;
