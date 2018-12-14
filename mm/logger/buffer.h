@@ -41,8 +41,9 @@ struct syscall_log_entry {
 #define ENTRY_SIZE_BITS 7
 #define ENTRY_SIZE sizeof(struct syscall_log_entry)
 
-#define NR_BUFFER_PAGE 1
+#define NR_BUFFER_PAGE 1024
 #define BUFFER_SIZE (PAGE_SIZE * NR_BUFFER_PAGE)
+
 #define NR_MAX_ENTRY ((NR_BUFFER_PAGE * PAGE_SIZE) >> (ENTRY_SIZE_BITS))
 #define MAX_ENTRY_MASK (NR_MAX_ENTRY - 1)
 
