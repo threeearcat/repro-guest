@@ -20,7 +20,11 @@ struct syscall_log_entry {
 	/* TODO: Is there any automatic way to calculate the pad and to
 	 * specify the alignment? Do I need to remove pad?
 	 */
-	char pad[56];
+	char pad[48];
+
+	// A syscall occupies this entry
+	// Entry is large enough. Make it 8-byte aligned.
+	unsigned long inuse;
 } __attribute__ ((__aligned__(128)));
 
 struct syscall_logger_ops {

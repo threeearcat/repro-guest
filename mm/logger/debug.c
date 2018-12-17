@@ -58,6 +58,7 @@ void debug_exit(void)
 static void print_entry(struct syscall_log_entry *entry)
 {
 	pr_info("  Entry addr:    %p\n", entry);
+	pr_info("    INUSE :      %d\n", entry->inuse);
 	pr_info("    NR    :      %lu\n", entry->nr);
 	pr_info("    RDI   :      %lu\n", entry->rdi);
 	pr_info("    RSI   :      %lu\n", entry->rsi);

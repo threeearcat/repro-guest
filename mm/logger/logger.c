@@ -45,7 +45,7 @@ static int create_log_buffer(void)
 		/* I think contiguous pages are better in performance. I
 		 * haven't conducted a measurement though.
 		 */
-		buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);
+		buf = kzalloc(BUFFER_SIZE, GFP_KERNEL);
 		if (!buf)
 			goto mem_alloc_failed;
 		log->buf = buf;
@@ -116,14 +116,19 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 	/* Retrieving idx. local IRQ should be disabled here in order to
 	 * avoid a race on idx.
 	 */
-	local_irq_save(flags);
 	log = &per_cpu(syscall_log, smp_processor_id());
-	idx = log->idx;
-	log->idx = (idx + 1) & MAX_ENTRY_MASK;
-	local_irq_restore(flags);
+	local_irq_save(flags);
+	// TODO: Loop in the irq-disabled code seems dangerous. If it is,
+	// fix this. I think it is okay if we have large buffer.
+	do {
+		idx = log->idx;
+		log->idx = (idx + 1) & MAX_ENTRY_MASK;
 
-	/* Get the address of the corresponding entry. */
-	entry = ((struct syscall_log_entry *)(log->buf) + idx);
+		/* Get the address of the corresponding entry. */
+		entry = ((struct syscall_log_entry *)(log->buf) + idx);
+	} while (entry->inuse == 1);
+	entry->inuse = 1;
+	local_irq_restore(flags);
 
 	/* See do_syscall_64(). */
 	entry->nr = nr;
@@ -169,11 +174,12 @@ static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry)
 
 	debug_log_syscall_exit(entry);
 
-	if (bad_happened)
+	if (bad_happened || !entry->inuse)
 		BUG();
 
-	/* Write exit_time. Now we have the full-filled entry */
 	entry->exit_time = ktime_get();
+	/* Now we have the full-filled entry. We can release the entry */
+	entry->inuse = 0;
 }
 
 struct syscall_logger_ops __logger_ops = {
