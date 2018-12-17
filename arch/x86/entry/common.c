@@ -279,7 +279,7 @@ __visible void do_syscall_64(struct pt_regs *regs)
 	struct thread_info *ti = pt_regs_to_thread_info(regs);
 	unsigned long nr = regs->orig_ax;
 #ifdef CONFIG_SYSCALL_LOGGER
-	struct syscall_log_entry entry;
+	struct syscall_log_entry *entry;
 #endif
 
 	enter_from_user_mode();
@@ -299,14 +299,14 @@ __visible void do_syscall_64(struct pt_regs *regs)
 		 * rejected already.
 		 */
 		if (syscall_logger_ops)
-			syscall_logger_ops->log_syscall_enter(nr, regs, &entry);
+			entry = syscall_logger_ops->log_syscall_enter(nr, regs);
 #endif
 		regs->ax = sys_call_table[nr & __SYSCALL_MASK](
 			regs->di, regs->si, regs->dx,
 			regs->r10, regs->r8, regs->r9);
 #ifdef CONFIG_SYSCALL_LOGGER
 		if (syscall_logger_ops)
-			syscall_logger_ops->log_syscall_exit(&entry);
+			syscall_logger_ops->log_syscall_exit(entry);
 #endif
 	}
 

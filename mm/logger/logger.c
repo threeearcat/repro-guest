@@ -38,7 +38,7 @@ static int create_log_buffer(void)
 #ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
 	int *stats;
 #endif
-	
+
 	for_each_possible_cpu(cpu) {
 		log = &per_cpu(syscall_log, cpu);
 
@@ -105,18 +105,27 @@ static void __exit syscall_logger_exit(void)
 }
 
 /* Should be called with allocated entry */
-static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_regs *regs,
-											 struct syscall_log_entry *entry)
+static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_regs *regs)
 {
-	/* TODO: We need only entry_time here. Do we really need the
-	 * _log_syscall_enter() function?
-	 */
+	struct syscall_log *log;
+	struct syscall_log_entry *entry;
+	unsigned long idx, flags;
+	// .tv64 is a signed variable
+	ktime_t ktime_max = { .tv64 = -1 };
 
-	/* Pre-fill data into entry. entry will be copied to per-CPU log
-	 * buffer when the syscall exits.
+	/* Retrieving idx. local IRQ should be disabled here in order to
+	 * avoid a race on idx.
 	 */
+	local_irq_save(flags);
+	log = &per_cpu(syscall_log, smp_processor_id());
+	idx = log->idx;
+	log->idx = (idx + 1) & MAX_ENTRY_MASK;
+	local_irq_restore(flags);
 
-	/* See do_syscall_64. */
+	/* Get the address of the corresponding entry. */
+	entry = ((struct syscall_log_entry *)(log->buf) + idx);
+
+	/* See do_syscall_64(). */
 	entry->nr = nr;
 	entry->rdi = regs->di;
 	entry->rsi = regs->si;
@@ -130,6 +139,15 @@ static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_r
 	 * https://lore.kernel.org/patchwork/patch/847639/
 	 */
 	entry->entry_time = ktime_get();
+	/* Assign ktime_max to exit_time to handle the situation that a
+	 * kernel dies before this syscall return
+	 */
+	entry->exit_time = ktime_max;
+
+#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
+	/* Increase an execution number to record statistics. */
+	(log->stats)[entry->nr]++;
+#endif
 
 	debug_log_syscall_enter(entry);
 
@@ -137,38 +155,25 @@ static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_r
 	 * its execution. Is this important to our research project? Does
 	 * this give any fun chance to make things difficult?
 	 */
+
+	return entry;
 }
 
 static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry)
 {
-	unsigned long idx, flags;
-	struct syscall_log *log;
+	ktime_t ktime_max = { .tv64 = -1 };
+
+	// Another syscall writes exit_time before this syscall release
+	// this entry. Print some useful information and panic.
+	bool bad_happened = ktime_compare(entry->exit_time, ktime_max);
+
+	debug_log_syscall_exit(entry);
+
+	if (bad_happened)
+		BUG();
 
 	/* Write exit_time. Now we have the full-filled entry */
 	entry->exit_time = ktime_get();
-
-	/* Retrieving idx. local IRQ should be disabled here in order to
-	 * avoid race condition on idx.
-	 */
-	local_irq_save(flags);
-	log = &per_cpu(syscall_log, smp_processor_id());
-	idx = log->idx;
-	log->idx = (idx + 1) & MAX_ENTRY_MASK;
-	local_irq_restore(flags);
-
-#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
-	/* Increase an execution number to record statistics. */
-	(log->stats)[entry->nr]++;
-#endif
-
-	/* Copy entry into per-CPU log buffer. If it is guaranteed that no
-	 * other thread in this CPU have the same idx, we don't have to
-	 * hold a lock here. No one access the same memory.
-	 */
-	memcpy(((struct syscall_log_entry *)(log->buf) + idx),
-		   entry, sizeof(struct syscall_log_entry));
-
-	debug_log_syscall_exit(idx, entry);
 }
 
 struct syscall_logger_ops __logger_ops = {

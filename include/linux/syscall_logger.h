@@ -24,8 +24,7 @@ struct syscall_log_entry {
 } __attribute__ ((__aligned__(128)));
 
 struct syscall_logger_ops {
-	void (*log_syscall_enter)(unsigned long nr, const struct pt_regs *regs,
-							  struct syscall_log_entry *entry);
+	struct syscall_log_entry * (*log_syscall_enter)(unsigned long nr, const struct pt_regs *regs);
 	void (*log_syscall_exit)(struct syscall_log_entry *entry);
 };
 

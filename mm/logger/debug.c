@@ -78,11 +78,10 @@ void debug_log_syscall_enter(struct syscall_log_entry *entry)
 	spin_unlock(&debug_spinlock);
 }
 
-void debug_log_syscall_exit(unsigned long idx, struct syscall_log_entry *entry)
+void debug_log_syscall_exit(struct syscall_log_entry *entry)
 {
 	spin_lock(&debug_spinlock);
 	pr_info("CPU #%d:         syscall_exit\n", smp_processor_id());
-	pr_info("  IDX:           %lu\n", idx);
 	print_entry(entry);
 	spin_unlock(&debug_spinlock);
 }
@@ -99,7 +98,7 @@ void debug_log_syscall_enter(struct syscall_log_entry *entry)
 {
 }
 
-void debug_log_syscall_exit(unsigned long idx, struct syscall_log_entry *entry)
+void debug_log_syscall_exit(struct syscall_log_entry *entry)
 {
 }
 #endif /* CONFIG_DEBUG_SYSCALL_LOGGER */
