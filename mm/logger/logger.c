@@ -126,6 +126,9 @@ static void syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_r
 	entry->r9 = regs->r9;
 
 	/* Log entry_time first. exit_time will be logged later. */
+	/* Ref of ktime_get() vs do_gettimeofday():
+	 * https://lore.kernel.org/patchwork/patch/847639/
+	 */
 	entry->entry_time = ktime_get();
 
 	debug_log_syscall_enter(entry);
