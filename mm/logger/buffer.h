@@ -28,7 +28,12 @@ struct syscall_log {
 	static const int NR_BUFFER_PAGE=N;									\
 	static char __attribute__((used)) *buffer_size="BUFFER_PAGE="#N;	\
 
+#ifdef CONFIG_SYSCALL_LOGGER_LARGE_BUFFER
 __BUFFER_PAGE(1024)
+#else
+// For debug purpose
+__BUFFER_PAGE(1)
+#endif
 #define BUFFER_SIZE (PAGE_SIZE * NR_BUFFER_PAGE)
 
 #define NR_MAX_ENTRY ((NR_BUFFER_PAGE * PAGE_SIZE) >> (ENTRY_SIZE_BITS))
