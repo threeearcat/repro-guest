@@ -20,7 +20,15 @@ struct syscall_log {
 #define ENTRY_SIZE_BITS 7
 #define ENTRY_SIZE sizeof(struct syscall_log_entry)
 
-#define NR_BUFFER_PAGE 1024
+// I want to extract the number of buffer pages from binary. I think
+// there is a beautiful way to do this, but the below is ugly. Anyway,
+// this is convinient :). I can just do "strings vmlinux | grep
+// BUFFER_PAGE=".
+#define __BUFFER_PAGE(N)												\
+	static const int NR_BUFFER_PAGE=N;									\
+	static char __attribute__((used)) *buffer_size="BUFFER_PAGE="#N;	\
+
+__BUFFER_PAGE(1024)
 #define BUFFER_SIZE (PAGE_SIZE * NR_BUFFER_PAGE)
 
 #define NR_MAX_ENTRY ((NR_BUFFER_PAGE * PAGE_SIZE) >> (ENTRY_SIZE_BITS))
