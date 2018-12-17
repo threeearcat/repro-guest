@@ -109,7 +109,7 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 {
 	struct syscall_log *log;
 	struct syscall_log_entry *entry;
-	unsigned long idx, flags;
+	unsigned long idx;
 	// .tv64 is a signed variable
 	ktime_t ktime_max = { .tv64 = -1 };
 
@@ -117,7 +117,7 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 	 * avoid a race on idx.
 	 */
 	log = &per_cpu(syscall_log, smp_processor_id());
-	local_irq_save(flags);
+	local_irq_disable();
 	// TODO: Loop in the irq-disabled code seems dangerous. If it is,
 	// fix this. I think it is okay if we have large buffer.
 	do {
@@ -128,7 +128,7 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 		entry = ((struct syscall_log_entry *)(log->buf) + idx);
 	} while (entry->inuse == 1);
 	entry->inuse = 1;
-	local_irq_restore(flags);
+	local_irq_enable();
 
 	/* See do_syscall_64(). */
 	entry->nr = nr;
