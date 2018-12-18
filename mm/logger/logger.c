@@ -147,6 +147,12 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 	 */
 	entry->exit_time = ktime_max;
 
+	// I'm currently not thinking of namespaces and challenges related
+	// to it. If there is any challenge or something, I seriously need
+	// to consider it.
+	entry->pid = (unsigned long) task_tgid_nr(current);
+	entry->tid = (unsigned long) task_pid_nr(current);
+
 #ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
 	/* Increase an execution number to record statistics. */
 	(log->stats)[entry->nr]++;
@@ -162,7 +168,7 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 	return entry;
 }
 
-static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry)
+static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry, unsigned long ret)
 {
 	ktime_t ktime_max = { .tv64 = -1 };
 
@@ -175,6 +181,7 @@ static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry)
 	if (bad_happened || !entry->inuse)
 		BUG();
 
+	entry->ret = ret;
 	entry->exit_time = ktime_get();
 	/* Now we have the full-filled entry. We can release the entry */
 	entry->inuse = 0;

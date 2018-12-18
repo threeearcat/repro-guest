@@ -306,7 +306,7 @@ __visible void do_syscall_64(struct pt_regs *regs)
 			regs->r10, regs->r8, regs->r9);
 #ifdef CONFIG_SYSCALL_LOGGER
 		if (syscall_logger_ops)
-			syscall_logger_ops->log_syscall_exit(entry);
+			syscall_logger_ops->log_syscall_exit(entry, regs->ax);
 #endif
 	}
 
