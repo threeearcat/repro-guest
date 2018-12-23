@@ -12,6 +12,7 @@ char *buf;
 #define STR "Writing to buffer"
 SYSCALL_DEFINE0(race1) {
 
+	printk("&buf: %p\n", &buf);
 	buf = kmalloc(1024, GFP_KERNEL);
 	if (buf) {
 		// race window
