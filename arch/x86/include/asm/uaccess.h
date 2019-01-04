@@ -729,6 +729,7 @@ copy_from_user_impl(void *to, const void __user *from, unsigned long n)
 	return n;
 }
 
+#ifdef CONFIG_COPY_FROM_USER_LOGGER
 #include "__copy_from_user_log.h"
 #define log_copy_from_user(to, from, n)									\
 	do {																\
@@ -743,7 +744,9 @@ copy_from_user_impl(void *to, const void __user *from, unsigned long n)
 		__ret = copy_from_user_impl(to, from, n);	\
 		__ret;										\
 	})
-
+#else
+#define copy_from_user(to, from, n) copy_from_user_impl(to, from, n)
+#endif /* CONFIG_COPY_FROM_USER_LOGGER */
 
 static __always_inline unsigned long __must_check
 copy_to_user(void __user *to, const void *from, unsigned long n)
