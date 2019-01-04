@@ -4,7 +4,7 @@
 #include <linux/seq_file.h>
 #include <asm/uaccess.h>
 
-#include "buffer.h"
+#include "syscall_buffer.h"
 
 #define PROCFS_NAME 		"syscall_logger"
 

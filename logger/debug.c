@@ -5,7 +5,7 @@
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
 
-#include "buffer.h"
+#include "syscall_buffer.h"
 
 __printf(1, 2)
 void __repro_debug(const char *fmt, ...)

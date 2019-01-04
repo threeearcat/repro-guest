@@ -6,7 +6,7 @@
 
 #include <linux/syscall_logger.h>
 
-#include "buffer.h"
+#include "sysall_buffer.h"
 #include "proc.h"
 
 MODULE_LICENSE("GPL");
