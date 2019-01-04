@@ -697,9 +697,9 @@ extern struct movsl_mask {
 #endif
 
 unsigned long __must_check _copy_from_user(void *to, const void __user *from,
-					   unsigned n);
+										   unsigned n);
 unsigned long __must_check _copy_to_user(void __user *to, const void *from,
-					 unsigned n);
+										 unsigned n);
 
 extern void __compiletime_error("usercopy buffer size is too small")
 __bad_copy_user(void);
@@ -729,7 +729,13 @@ copy_from_user_impl(void *to, const void __user *from, unsigned long n)
 	return n;
 }
 
-#define log_copy_from_user(to, from, n) do {} while(0)
+struct test_struct;
+#define log_copy_from_user(to, from, n)									\
+	do {																\
+		if (_Generic(to, struct test_struct *: true, default: false)) {	\
+			printk("This is a logging target\n");						\
+		}																\
+	} while(0)
 
 #define copy_from_user(to, from, n)					\
 	({ unsigned long __ret;							\
