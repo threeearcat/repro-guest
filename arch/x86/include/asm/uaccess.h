@@ -729,10 +729,10 @@ copy_from_user_impl(void *to, const void __user *from, unsigned long n)
 	return n;
 }
 
-struct test_struct;
+#include "__copy_from_user_log.h"
 #define log_copy_from_user(to, from, n)									\
 	do {																\
-		if (_Generic(to, struct test_struct *: true, default: false)) {	\
+		if (copy_from_user_check_type(to, from, n)) {					\
 			printk("This is a logging target\n");						\
 		}																\
 	} while(0)
