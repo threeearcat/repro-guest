@@ -899,5 +899,6 @@ asmlinkage long sys_copy_file_range(int fd_in, loff_t __user *off_in,
 asmlinkage long sys_mlock2(unsigned long start, size_t len, int flags);
 asmlinkage long sys_race1(void);
 asmlinkage long sys_race2(void);
+asmlinkage long sys_copy_from_user_test(char * __user buf);
 
 #endif

@@ -337,6 +337,7 @@
 328	64	pwritev2		sys_pwritev2
 329 common race1 sys_race1
 330 common race2 sys_race2
+331 common copy_from_user_test sys_copy_from_user_test
 
 #
 # x32-specific system call numbers start at 512 to avoid cache impact
