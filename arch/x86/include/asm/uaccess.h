@@ -710,7 +710,7 @@ static inline void copy_user_overflow(int size, unsigned long count)
 }
 
 static __always_inline unsigned long __must_check
-copy_from_user(void *to, const void __user *from, unsigned long n)
+copy_from_user_impl(void *to, const void __user *from, unsigned long n)
 {
 	int sz = __compiletime_object_size(to);
 
@@ -728,6 +728,16 @@ copy_from_user(void *to, const void __user *from, unsigned long n)
 
 	return n;
 }
+
+#define log_copy_from_user(to, from, n) do {} while(0)
+
+#define copy_from_user(to, from, n)					\
+	({ unsigned long __ret;							\
+		log_copy_from_user(to, from, n);			\
+		__ret = copy_from_user_impl(to, from, n);	\
+		__ret;										\
+	})
+
 
 static __always_inline unsigned long __must_check
 copy_to_user(void __user *to, const void *from, unsigned long n)
