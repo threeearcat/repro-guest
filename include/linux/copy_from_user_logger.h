@@ -4,6 +4,6 @@
 #include <linux/kernel.h>
 #include <linux/compiler.h>
 
-unsigned long __copy_from_user_log(void *to, const void __user *from, unsigned long n);
+void record_copy_from_user(void *to, const void __user *from, unsigned long n);
 
 #endif /* __COPY_FROM_USER_LOGGER_H */

@@ -6,8 +6,9 @@
 
 #include <linux/syscall_logger.h>
 
-#include "sysall_buffer.h"
+#include "syscall_buffer.h"
 #include "proc.h"
+#include "copy_from_user_logger.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Dae R. Jeong");
@@ -69,9 +70,13 @@ static int create_log_buffer(void)
 	return -ENOMEM;
 }
 
-static int __init syscall_logger_init(void)
+static int syscall_logger_init(void)
 {
 	int ret;
+	ret = copy_from_user_logger_init();
+	if (!ret)
+		return ret;
+
 	/* Create per-CPU log buffer first */
 	ret = create_log_buffer();
 
@@ -102,6 +107,10 @@ static void __exit syscall_logger_exit(void)
 
 	/* Now we can destroy log buffer */
 	destroy_log_buffer();
+
+#ifdef CONFIG_COPY_FROM_USER_LOGGER
+	copy_from_user_logger_exit();
+#endif
 }
 
 /* Should be called with allocated entry */

@@ -729,19 +729,21 @@ copy_from_user_impl(void *to, const void __user *from, unsigned long n)
 	return n;
 }
 
+extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
+
 #ifdef CONFIG_COPY_FROM_USER_LOGGER
 #include "__copy_from_user_log.h"
-#define log_copy_from_user(to, from, n)									\
-	do {																\
-		if (copy_from_user_check_type(to, from, n)) {					\
-			__copy_from_user_log(to, from, n);							\
-		}																\
+#define log_copy_from_user(to, from, n)				\
+	do {											\
+		if (copy_from_user_check_type(to, from, n))	\
+			record_copy_from_user(to, from, n);		\
 	} while(0)
 
 #define copy_from_user(to, from, n)					\
-	({ unsigned long __ret;							\
-		log_copy_from_user(to, from, n);			\
+	({												\
+		unsigned long __ret;						\
 		__ret = copy_from_user_impl(to, from, n);	\
+		log_copy_from_user(to, from, n);			\
 		__ret;										\
 	})
 #else
