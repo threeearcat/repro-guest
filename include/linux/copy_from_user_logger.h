@@ -4,6 +4,10 @@
 #include <linux/kernel.h>
 #include <linux/compiler.h>
 
-void record_copy_from_user(void *to, const void __user *from, unsigned long n);
+struct copy_from_user_logger_ops {
+	void (*record_copy_from_user)(void *to, const void *from, unsigned long n);
+};
+
+extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
 
 #endif /* __COPY_FROM_USER_LOGGER_H */

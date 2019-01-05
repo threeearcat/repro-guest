@@ -735,11 +735,13 @@ extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
 #include "__copy_from_user_log.h"
 #include <linux/copy_from_user_logger.h>
 #define MAX_SIZE 1 << 10
-#define log_copy_from_user(to, from, n)				    \
-	do {											    \
-		if (copy_from_user_check_type(to, from, n) ||	\
-			n < MAX_SIZE)								\
-			record_copy_from_user(to, from, n);		    \
+#define log_copy_from_user(to, from, n)				        \
+	do {													\
+		if (copy_from_user_logger_ops != NULL)				\
+			if (copy_from_user_check_type(to, from, n) ||	\
+				n < MAX_SIZE)								\
+				copy_from_user_logger_ops->					\
+					record_copy_from_user(to, from, n);		\
 	} while(0)
 
 #define copy_from_user(to, from, n)					\

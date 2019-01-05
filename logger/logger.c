@@ -17,6 +17,9 @@ DEFINE_PER_CPU(struct syscall_log, syscall_log);
 
 struct syscall_logger_ops __logger_ops;
 
+struct copy_from_user_logger_ops *copy_from_user_logger_ops = NULL;
+EXPORT_SYMBOL(copy_from_user_logger_ops);
+
 static void destroy_log_buffer(void)
 {
 	int cpu;
@@ -195,6 +198,14 @@ static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry, uns
 	/* Now we have the full-filled entry. We can release the entry */
 	entry->inuse = 0;
 }
+
+#ifdef CONFIG_COPY_FROM_USER_LOGGER
+extern void record_copy_from_user(void *to, const void *from, unsigned long n);
+#else
+void record_copy_from_user(void *to, const void *from, unsigned long n)
+{
+}
+#endif
 
 struct syscall_logger_ops __logger_ops = {
     .log_syscall_enter = syscall_logger_log_syscall_enter,

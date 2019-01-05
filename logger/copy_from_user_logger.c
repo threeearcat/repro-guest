@@ -9,7 +9,10 @@
 
 DEFINE_PER_CPU(struct copy_from_user_log, copy_from_user_log);
 
-void record_copy_from_user(void *to, const void *from, unsigned long n)
+struct copy_from_user_logger_ops __cfu_ops;
+extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
+
+static void record_copy_from_user(void *to, const void *from, unsigned long n)
 {
 	unsigned long flags, idx;
 	struct copy_from_user_entry *entry;
@@ -30,7 +33,6 @@ void record_copy_from_user(void *to, const void *from, unsigned long n)
 	entry->value = kmalloc(n, GFP_KERNEL);
 	memcpy(entry->value, to, n);
 }
-EXPORT_SYMBOL(record_copy_from_user);
 
 int copy_from_user_logger_init(void)
 {
@@ -46,6 +48,8 @@ int copy_from_user_logger_init(void)
 		log->idx = 0;
 	}
 
+	copy_from_user_logger_ops = &__cfu_ops;
+
 	return 0;
 }
 
@@ -53,3 +57,7 @@ void copy_from_user_logger_exit(void)
 {
 	// TODO: Free memory
 }
+
+struct copy_from_user_logger_ops __cfu_ops = {
+    .record_copy_from_user = record_copy_from_user,
+};
