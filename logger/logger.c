@@ -76,10 +76,11 @@ static int create_log_buffer(void)
 static int syscall_logger_init(void)
 {
 	int ret;
+#ifdef CONFIG_COPY_FROM_USER_LOGGER	
 	ret = copy_from_user_logger_init();
-	if (!ret)
+	if (ret)
 		return ret;
-
+#endif
 	/* Create per-CPU log buffer first */
 	ret = create_log_buffer();
 
