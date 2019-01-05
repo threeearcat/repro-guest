@@ -122,8 +122,7 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 	struct syscall_log *log;
 	struct syscall_log_entry *entry;
 	unsigned long idx, inuse;
-	// .tv64 is a signed variable
-	ktime_t ktime_max = { .tv64 = -1 };
+	unsigned long time_max = (unsigned long)-1;
 
 	/* Retrieving idx. local IRQ should be disabled here in order to
 	 * avoid a race on idx.
@@ -149,15 +148,11 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 	entry->r8 = regs->r8;
 	entry->r9 = regs->r9;
 
-	/* Log entry_time first. exit_time will be logged later. */
-	/* Ref of ktime_get() vs do_gettimeofday():
-	 * https://lore.kernel.org/patchwork/patch/847639/
-	 */
-	entry->entry_time = ktime_get();
-	/* Assign ktime_max to exit_time to handle the situation that a
+	entry->entry_time = rdtsc();
+	/* Assign time_max to exit_time to handle the situation that a
 	 * kernel dies before this syscall return
 	 */
-	entry->exit_time = ktime_max;
+	entry->exit_time = time_max;
 
 	// I'm currently not thinking of namespaces and challenges related
 	// to it. If there is any challenge or something, I seriously need
@@ -182,11 +177,11 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 
 static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry, unsigned long ret)
 {
-	ktime_t ktime_max = { .tv64 = -1 };
+	unsigned long time_max = (unsigned long)-1;
 
 	// Another syscall writes exit_time before this syscall release
 	// this entry. Print some useful information and panic.
-	bool bad_happened = ktime_compare(entry->exit_time, ktime_max);
+	bool bad_happened = (entry->exit_time != time_max);
 
 	debug_log_syscall_exit(entry);
 
@@ -194,7 +189,7 @@ static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry, uns
 		BUG();
 
 	entry->ret = ret;
-	entry->exit_time = ktime_get();
+	entry->exit_time = rdtsc();
 	/* Now we have the full-filled entry. We can release the entry */
 	entry->inuse = 0;
 }

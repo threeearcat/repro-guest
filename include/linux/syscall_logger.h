@@ -16,8 +16,8 @@ struct syscall_log_entry {
 	unsigned long ret;
 
 	/* Timestamps on entry/exit */
-	ktime_t entry_time;
-	ktime_t exit_time;
+	unsigned long entry_time;
+	unsigned long exit_time;
 
 	/* TODO: Is there any automatic way to calculate the pad and to
 	 * specify the alignment? Do I need to remove pad?

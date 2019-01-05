@@ -16,8 +16,9 @@ struct copy_from_user_entry {
 	unsigned long n;
 	void *value;
 	char *name;
+	unsigned long timestamp;
 
-	char pad[23];
+	char pad[15];
 	char occupied;
 } __attribute__ ((aligned(64)));
 

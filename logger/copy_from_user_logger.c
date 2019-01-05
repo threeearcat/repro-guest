@@ -32,6 +32,7 @@ static void record_copy_from_user(void *to, const void *from, unsigned long n)
 	entry->from = from;
 	entry->n = n;
 	entry->value = kmalloc(n, GFP_KERNEL);
+	entry->timestamp = rdtsc();
 	entry->occupied = 1;
 	memcpy(entry->value, to, n);
 }
