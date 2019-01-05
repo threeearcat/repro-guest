@@ -30,6 +30,7 @@ void record_copy_from_user(void *to, const void *from, unsigned long n)
 	entry->value = kmalloc(n, GFP_KERNEL);
 	memcpy(entry->value, to, n);
 }
+EXPORT_SYMBOL(record_copy_from_user);
 
 int copy_from_user_logger_init(void)
 {
