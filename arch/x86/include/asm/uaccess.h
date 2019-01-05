@@ -733,10 +733,13 @@ extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
 
 #ifdef CONFIG_COPY_FROM_USER_LOGGER
 #include "__copy_from_user_log.h"
-#define log_copy_from_user(to, from, n)				\
-	do {											\
-		if (copy_from_user_check_type(to, from, n))	\
-			record_copy_from_user(to, from, n);		\
+#include <linux/copy_from_user_logger.h>
+#define MAX_SIZE 1 << 10
+#define log_copy_from_user(to, from, n)				    \
+	do {											    \
+		if (copy_from_user_check_type(to, from, n) ||	\
+			n < MAX_SIZE)								\
+			record_copy_from_user(to, from, n);		    \
 	} while(0)
 
 #define copy_from_user(to, from, n)					\
