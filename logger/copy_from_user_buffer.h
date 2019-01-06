@@ -1,7 +1,7 @@
 #ifndef __COPY_FROM_USER_BUFFER_H
 #define __COPY_FROM_USER_BUFFER_H
 
-#define CFU_BUFFER_PAGE 1
+#define CFU_BUFFER_PAGE 10
 #define CFU_BUFFER_SIZE PAGE_SIZE * CFU_BUFFER_PAGE
 
 struct copy_from_user_log {
@@ -14,13 +14,15 @@ struct copy_from_user_entry {
 	void *to;
 	void *from;
 	unsigned long n;
-	void *value;
 	char *name;
 	unsigned long timestamp;
 
 	char pad[15];
 	char occupied;
-} __attribute__ ((aligned(64)));
+
+#define DATA_SIZE 192
+	char data[DATA_SIZE];
+} __attribute__ ((aligned(256)));
 
 #define NR_CFU_INDEX (CFU_BUFFER_SIZE / sizeof(struct copy_from_user_entry))
 #define CFU_INDEX_MASK (NR_CFU_INDEX - 1)

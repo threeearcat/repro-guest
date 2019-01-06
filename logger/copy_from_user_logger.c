@@ -19,6 +19,9 @@ static void record_copy_from_user(void *to, const void *from, unsigned long n)
 	struct copy_from_user_log *log;
 	void *buf;
 
+	if (n > DATA_SIZE)
+		return;
+
 	local_irq_save(flags);
 	log = &per_cpu(copy_from_user_log, smp_processor_id());
 	idx = log->idx;
@@ -31,10 +34,9 @@ static void record_copy_from_user(void *to, const void *from, unsigned long n)
 	entry->to = to;
 	entry->from = from;
 	entry->n = n;
-	entry->value = kmalloc(n, GFP_KERNEL);
 	entry->timestamp = rdtsc();
 	entry->occupied = 1;
-	memcpy(entry->value, to, n);
+	memcpy(entry->data, to, n);
 }
 
 int copy_from_user_logger_init(void)
@@ -58,8 +60,7 @@ int copy_from_user_logger_init(void)
 
 void copy_from_user_logger_exit(void)
 {
-	int cpu, idx;
-	struct copy_from_user_entry *entry;
+	int cpu;
 	struct copy_from_user_log *log;
 	void *buf;
 
@@ -67,12 +68,6 @@ void copy_from_user_logger_exit(void)
 	for_each_possible_cpu(cpu) {
 		log = &per_cpu(copy_from_user_log, cpu);
 		buf = log->buf;
-
-		for (idx = 0; idx < NR_CFU_INDEX; idx++) {
-			entry = ((struct copy_from_user_entry *)buf + idx);
-			if (entry->occupied)
-				kfree(entry);
-		}
 		kfree(buf);
 	}
 }
