@@ -1,8 +1,12 @@
 #ifndef __COPY_FROM_USER_BUFFER_H
 #define __COPY_FROM_USER_BUFFER_H
 
-#define CFU_BUFFER_PAGE 10
-#define CFU_BUFFER_SIZE PAGE_SIZE * CFU_BUFFER_PAGE
+#define __CFU_BUFFER_PAGE(N)											\
+	static const int NR_CFU_BUFFER_PAGE=N;								\
+	static char __attribute__((used)) *cfu_buffer_size="CFU_BUFFER_PAGE="#N; \
+
+__CFU_BUFFER_PAGE(1024)
+#define CFU_BUFFER_SIZE PAGE_SIZE * NR_CFU_BUFFER_PAGE
 
 struct copy_from_user_log {
 	void *buf;
