@@ -16,7 +16,7 @@ struct copy_from_user_log {
 // copy_from_user_entry should be power of 2
 struct copy_from_user_entry {
 	void *to;
-	void *from;
+	const void *from;
 	unsigned long n;
 	char *name;
 	unsigned long timestamp;
