@@ -35,6 +35,8 @@ static void record_copy_from_user(void *to, const void *from, unsigned long n)
 	entry->from = from;
 	entry->n = n;
 	entry->timestamp = rdtsc();
+	// No need to log tid. They have same address space.
+	entry->pid = (unsigned long) task_tgid_nr(current);
 	entry->occupied = 1;
 	memcpy(entry->data, to, n);
 }

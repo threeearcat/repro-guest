@@ -20,8 +20,10 @@ struct copy_from_user_entry {
 	unsigned long n;
 	char *name;
 	unsigned long timestamp;
+	// No need to have tid
+	unsigned long pid;
 
-	char pad[15];
+	char pad[7];
 	char occupied;
 
 #define DATA_SIZE 192
