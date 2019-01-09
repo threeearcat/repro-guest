@@ -4,6 +4,12 @@
 #include <linux/kernel.h>
 #include <linux/compiler.h>
 
+struct test_struct;
+#define copy_from_user_check_type(to, from, n) \
+	_Generic(to,							   \
+			 struct test_struct *: true,	   \
+			 default: false)
+
 struct copy_from_user_logger_ops {
 	void (*record_copy_from_user)(void *to, const void *from, unsigned long n);
 };

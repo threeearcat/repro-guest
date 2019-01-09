@@ -732,9 +732,8 @@ copy_from_user_impl(void *to, const void __user *from, unsigned long n)
 extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
 
 #ifdef CONFIG_COPY_FROM_USER_LOGGER
-#include "__copy_from_user_log.h"
 #include <linux/copy_from_user_logger.h>
-#define MAX_SIZE 1 << 10
+#define MAX_SIZE 128
 #define log_copy_from_user(to, from, n)				        \
 	do {													\
 		if (copy_from_user_logger_ops != NULL)				\
