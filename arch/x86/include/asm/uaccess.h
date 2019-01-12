@@ -15,21 +15,6 @@
 #define VERIFY_READ 0
 #define VERIFY_WRITE 1
 
-#ifdef CONFIG_COPY_FROM_USER_LOGGER
-#include <linux/copy_from_user_logger.h>
-#define MAX_SIZE 128
-#define log_copy_from_user(to, from, n)				        \
-	do {													\
-		if (copy_from_user_logger_ops != NULL)				\
-			if (copy_from_user_check_type(to, from, n) ||	\
-				n < MAX_SIZE)								\
-				copy_from_user_logger_ops->					\
-					record_copy_from_user(to, from, n);		\
-	} while(0)
-#else
-#define log_copy_from_user(to, from, n) do {} while(0);
-#endif /* CONFIG_COPY_FROM_USER_LOGGER */
-
 /*
  * The fs value determines whether argument validity checking should be
  * performed or not.  If get_fs() == USER_DS, checking is performed, with
@@ -209,7 +194,7 @@ __typeof__(__builtin_choose_expr(sizeof(x) > sizeof(0UL), 0ULL, 0UL))
 		     : "=a" (__ret_gu), "=r" (__val_gu), "+r" (__sp)	\
 		     : "0" (ptr), "i" (sizeof(*(ptr))));		\
 	(x) = (__force __typeof__(*(ptr))) __val_gu;			\
-	log_copy_from_user(&(x), ptr, sizeof(x));				\
+	log_copy_from_user(&(x), ptr, sizeof(x), true);				\
 	__builtin_expect(__ret_gu, 0);					\
 })
 
@@ -752,7 +737,7 @@ extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
 	({												\
 		unsigned long __ret;						\
 		__ret = copy_from_user_impl(to, from, n);	\
-		log_copy_from_user(to, from, n);			\
+		log_copy_from_user(to, from, n, true);		\
 		__ret;										\
 	})
 #else

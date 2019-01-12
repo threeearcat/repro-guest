@@ -16,6 +16,21 @@
  * Copy To/From Userspace
  */
 
+#ifdef CONFIG_COPY_FROM_USER_LOGGER
+#include <linux/copy_from_user_logger.h>
+#define MAX_SIZE 128
+#define log_copy_from_user(to, from, n, dump_write)					\
+	do {															\
+		if (copy_from_user_logger_ops != NULL)						\
+			if (copy_from_user_check_type(to, from, n) ||			\
+				n < MAX_SIZE)										\
+				copy_from_user_logger_ops->							\
+					record_copy_from_user(to, from, n, dump_write);	\
+	} while(0)
+#else
+#define log_copy_from_user(to, from, n, dump_write) do {} while(0);
+#endif /* CONFIG_COPY_FROM_USER_LOGGER */
+
 /* Handles exceptions in both to and from, but doesn't do access_ok */
 __must_check unsigned long
 copy_user_enhanced_fast_string(void *to, const void *from, unsigned len);
@@ -245,11 +260,19 @@ int __copy_in_user(void __user *dst, const void __user *src, unsigned size)
 }
 
 static __must_check __always_inline int
-__copy_from_user_inatomic(void *dst, const void __user *src, unsigned size)
+__copy_from_user_inatomic_impl(void *dst, const void __user *src, unsigned size)
 {
 	kasan_check_write(dst, size);
 	return __copy_from_user_nocheck(dst, src, size);
 }
+
+#define __copy_from_user_inatomic(dst, src, size)				\
+	({															\
+		int __ret;												\
+		__ret = __copy_from_user_inatomic_impl(dst, src, size);	\
+		log_copy_from_user(dst, src, size, false);				\
+		__ret;													\
+	})
 
 static __must_check __always_inline int
 __copy_to_user_inatomic(void __user *dst, const void *src, unsigned size)

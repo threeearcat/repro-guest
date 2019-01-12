@@ -196,9 +196,9 @@ static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry, uns
 }
 
 #ifdef CONFIG_COPY_FROM_USER_LOGGER
-extern void record_copy_from_user(void *to, const void *from, unsigned long n);
+extern void record_copy_from_user(void *to, const void *from, unsigned long n, bool dump_write);
 #else
-void record_copy_from_user(void *to, const void *from, unsigned long n)
+void record_copy_from_user(void *to, const void *from, unsigned long n, bool dump_write)
 {
 }
 #endif

@@ -11,7 +11,7 @@ struct test_struct;
 			 default: false)
 
 struct copy_from_user_logger_ops {
-	void (*record_copy_from_user)(void *to, const void *from, unsigned long n);
+	void (*record_copy_from_user)(void *to, const void *from, unsigned long n, bool dump_data);
 };
 
 extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;

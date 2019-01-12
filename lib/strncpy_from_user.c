@@ -119,7 +119,7 @@ long strncpy_from_user(char *dst, const char __user *src, long count)
 		if (copy_from_user_logger_ops != NULL)
 			if (copy_from_user_check_type(dst, src, retval + 1) ||
 				retval + 1 < MAX_SIZE)
-				copy_from_user_logger_ops->record_copy_from_user(dst, src, retval + 1);
+				copy_from_user_logger_ops->record_copy_from_user(dst, src, retval + 1, true);
 		return retval;
 	}
 	return -EFAULT;
