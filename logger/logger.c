@@ -124,20 +124,21 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 	struct syscall_log_entry *entry;
 	unsigned long idx, inuse;
 	unsigned long time_max = (unsigned long)-1;
+	unsigned long flags;
 
 	/* Retrieving idx. local IRQ should be disabled here in order to
 	 * avoid a race on idx.
 	 */
 	log = &per_cpu(syscall_log, smp_processor_id());
 	do {
-		local_irq_disable();
+		local_irq_save(flags);
 		idx = log->idx;
 		log->idx = (idx + 1) & MAX_ENTRY_MASK;
 
 		/* Get the address of the corresponding entry. */
 		entry = ((struct syscall_log_entry *)(log->buf) + idx);
 		inuse = cmpxchg(&entry->inuse, 0, 1);
-		local_irq_enable();
+		local_irq_restore(flags);
 	} while (inuse);
 
 	/* See do_syscall_64(). */
