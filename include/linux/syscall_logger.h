@@ -22,7 +22,8 @@ struct syscall_log_entry {
 	/* TODO: Is there any automatic way to calculate the pad and to
 	 * specify the alignment? Do I need to remove pad?
 	 */
-	char pad[24];
+	char pad[16];
+	unsigned long skipped;
 
 	// We have a lot of space. make pid and tid 8-byte-aligned.
 	unsigned long pid;
