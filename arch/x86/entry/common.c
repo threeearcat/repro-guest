@@ -34,6 +34,12 @@
 #include <asm/fpu/api.h>
 #include <asm/nospec-branch.h>
 
+#ifdef CONFIG_SYSCALL_LOGGER
+#include <linux/syscall_logger.h>
+
+struct syscall_logger_ops *syscall_logger_ops = NULL;
+#endif
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/syscalls.h>
 
@@ -278,6 +284,9 @@ __visible inline void syscall_return_slowpath(struct pt_regs *regs)
 __visible void do_syscall_64(unsigned long nr, struct pt_regs *regs)
 {
 	struct thread_info *ti;
+#ifdef CONFIG_SYSCALL_LOGGER
+	struct syscall_log_entry *entry = NULL;
+#endif
 
 	enter_from_user_mode();
 	local_irq_enable();
@@ -293,7 +302,15 @@ __visible void do_syscall_64(unsigned long nr, struct pt_regs *regs)
 	nr &= __SYSCALL_MASK;
 	if (likely(nr < NR_syscalls)) {
 		nr = array_index_nospec(nr, NR_syscalls);
+#ifdef CONFIG_SYSCALL_LOGGER
+	if (syscall_logger_ops)
+		entry = syscall_logger_ops->log_syscall_enter(nr, regs);
+#endif
 		regs->ax = sys_call_table[nr](regs);
+#ifdef CONFIG_SYSCALL_LOGGER
+		if (syscall_logger_ops)
+			syscall_logger_ops->log_syscall_exit(entry, regs->ax);
+#endif
 	}
 
 	syscall_return_slowpath(regs);
