@@ -10,6 +10,26 @@
 
 #include <asm/uaccess.h>
 
+#ifdef CONFIG_COPY_FROM_USER_LOGGER
+#include <linux/copy_from_user_logger.h>
+#define MAX_SIZE 128
+#define log_copy_from_user(to, from, n, dump_write)					\
+	do {                                                            \
+		if (copy_from_user_logger_ops != NULL) {                    \
+			if (copy_from_user_check_type(to, from, n) ||           \
+				n < MAX_SIZE) {                                     \
+				copy_from_user_logger_ops->                         \
+					record_copy_from_user(to, from, n, dump_write); \
+			} else {                                                \
+				copy_from_user_logger_ops->                         \
+					record_copy_from_user(to, from, n, false);      \
+			}                                                       \
+		}                                                           \
+	} while(0)
+#else
+#define log_copy_from_user(to, from, n, dump_write) do {} while(0);
+#endif /* CONFIG_COPY_FROM_USER_LOGGER */
+
 /*
  * Architectures should provide two primitives (raw_copy_{to,from}_user())
  * and get rid of their private instances of copy_{to,from}_user() and
@@ -56,12 +76,20 @@
  */
 
 static __always_inline unsigned long
-__copy_from_user_inatomic(void *to, const void __user *from, unsigned long n)
+__copy_from_user_inatomic_impl(void *to, const void __user *from, unsigned long n)
 {
 	kasan_check_write(to, n);
 	check_object_size(to, n, false);
 	return raw_copy_from_user(to, from, n);
 }
+
+#define __copy_from_user_inatomic(dst, src, size)				\
+	({                                                          \
+		int __ret;                                              \
+		__ret = __copy_from_user_inatomic_impl(dst, src, size); \
+		log_copy_from_user(dst, src, size, false);              \
+		__ret;                                                  \
+	})
 
 static __always_inline unsigned long
 __copy_from_user(void *to, const void __user *from, unsigned long n)
@@ -138,12 +166,25 @@ _copy_to_user(void __user *, const void *, unsigned long);
 #endif
 
 static __always_inline unsigned long __must_check
-copy_from_user(void *to, const void __user *from, unsigned long n)
+copy_from_user_impl(void *to, const void __user *from, unsigned long n)
 {
 	if (likely(check_copy_size(to, n, false)))
 		n = _copy_from_user(to, from, n);
 	return n;
 }
+
+extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
+#ifdef CONFIG_COPY_FROM_USER_LOGGER
+#define copy_from_user(to, from, n)					\
+	({                                              \
+		unsigned long __ret;                        \
+		__ret = copy_from_user_impl(to, from, n);   \
+		log_copy_from_user(to, from, n, true);      \
+		__ret;                                      \
+	})
+#else
+#define copy_from_user(to, from, n) copy_from_user_impl(to, from, n)
+#endif /* CONFIG_COPY_FROM_USER_LOGGER */
 
 static __always_inline unsigned long __must_check
 copy_to_user(void __user *to, const void *from, unsigned long n)
