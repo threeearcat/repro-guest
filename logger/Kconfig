@@ -1,0 +1,23 @@
+config SYSCALL_LOGGER
+	bool "Logging syscalls and their arguments in a per-cpu ring buffer"
+	default y
+
+config DEBUG_SYSCALL_LOGGER
+	bool "Debug syscall logger"
+	default y
+	depends on SYSCALL_LOGGER
+
+config SYSCALL_LOGGER_LOG_STATISTICS
+	bool "Log statistics"
+	default y
+	depends on SYSCALL_LOGGER
+
+config SYSCALL_LOGGER_LARGE_BUFFER
+	bool "Use large buffer"
+	default y
+	depends on SYSCALL_LOGGER
+
+config COPY_FROM_USER_LOGGER
+	bool "Log copy_from_user"
+	default y
+	depends on SYSCALL_LOGGER
