@@ -30,6 +30,12 @@
 #include <linux/uaccess.h>
 #include <asm/cpufeature.h>
 
+#ifdef CONFIG_SYSCALL_LOGGER
+#include <linux/syscall_logger.h>
+
+struct syscall_logger_ops *syscall_logger_ops = NULL;
+#endif
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/syscalls.h>
 
@@ -268,6 +274,9 @@ __visible void do_syscall_64(struct pt_regs *regs)
 {
 	struct thread_info *ti = current_thread_info();
 	unsigned long nr = regs->orig_ax;
+#ifdef CONFIG_SYSCALL_LOGGER
+	struct syscall_log_entry *entry = NULL;
+#endif
 
 	enter_from_user_mode();
 	local_irq_enable();
@@ -280,10 +289,18 @@ __visible void do_syscall_64(struct pt_regs *regs)
 	 * table.  The only functional difference is the x32 bit in
 	 * regs->orig_ax, which changes the behavior of some syscalls.
 	 */
+#ifdef CONFIG_SYSCALL_LOGGER
+	if (syscall_logger_ops)
+		entry = syscall_logger_ops->log_syscall_enter(nr, regs);
+#endif
 	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
 		regs->ax = sys_call_table[nr & __SYSCALL_MASK](
 			regs->di, regs->si, regs->dx,
 			regs->r10, regs->r8, regs->r9);
+#ifdef CONFIG_SYSCALL_LOGGER
+		if (syscall_logger_ops)
+			syscall_logger_ops->log_syscall_exit(entry, regs->ax);
+#endif
 	}
 
 	syscall_return_slowpath(regs);
