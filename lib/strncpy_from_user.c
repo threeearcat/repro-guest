@@ -81,6 +81,8 @@ efault:
 	return -EFAULT;
 }
 
+extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
+#include <linux/copy_from_user_logger.h>
 /**
  * strncpy_from_user: - Copy a NUL terminated string from userspace.
  * @dst:   Destination address, in kernel space.  This buffer must be at
@@ -117,6 +119,10 @@ long strncpy_from_user(char *dst, const char __user *src, long count)
 		user_access_begin();
 		retval = do_strncpy_from_user(dst, src, count, max);
 		user_access_end();
+		if (copy_from_user_logger_ops != NULL)
+			if (copy_from_user_check_type(dst, src, retval + 1) ||
+				retval + 1 < MAX_SIZE)
+				copy_from_user_logger_ops->record_copy_from_user(dst, src, retval + 1, true);
 		return retval;
 	}
 	return -EFAULT;
