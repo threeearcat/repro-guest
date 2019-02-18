@@ -168,6 +168,7 @@ __typeof__(__builtin_choose_expr(sizeof(x) > sizeof(0UL), 0ULL, 0UL))
 		     : "=a" (__ret_gu), "=r" (__val_gu), "+r" (__sp)	\
 		     : "0" (ptr), "i" (sizeof(*(ptr))));		\
 	(x) = (__force __typeof__(*(ptr))) __val_gu;			\
+	log_copy_from_user(&(x), ptr, sizeof(x), true);			\
 	__builtin_expect(__ret_gu, 0);					\
 })
 
