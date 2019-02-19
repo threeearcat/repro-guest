@@ -194,7 +194,7 @@ __typeof__(__builtin_choose_expr(sizeof(x) > sizeof(0UL), 0ULL, 0UL))
 		     : "=a" (__ret_gu), "=r" (__val_gu), "+r" (__sp)	\
 		     : "0" (ptr), "i" (sizeof(*(ptr))));		\
 	(x) = (__force __typeof__(*(ptr))) __val_gu;			\
-	log_copy_from_user(&(x), ptr, sizeof(x), true);				\
+	log_copy_from_user((void*)&(x), ptr, sizeof(x), true);	\
 	__builtin_expect(__ret_gu, 0);					\
 })
 
@@ -458,6 +458,7 @@ do {									\
 	__get_user_size(__gu_val, (ptr), (size), __gu_err, -EFAULT);	\
 	__uaccess_end();						\
 	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+	log_copy_from_user((void*)&(x), ptr, size, true);	\
 	__builtin_expect(__gu_err, 0);					\
 })
 
