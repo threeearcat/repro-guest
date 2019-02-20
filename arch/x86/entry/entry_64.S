@@ -170,6 +170,18 @@ GLOBAL(entry_SYSCALL_64_after_swapgs)
 	pushq	%r11				/* pt_regs->r11 */
 	sub	$(6*8), %rsp			/* pt_regs->bp, bx, r12-15 not saved */
 
+
+#ifdef CONFIG_SYSCALL_LOGGER
+	/* In this version, there is a syscall fastpath and it works
+	 * fine. But the fastpath will be removed later because of quiet slow
+	 * PTI, and all syscalls go to the slowpath. In this research
+	 * project, I make all syscalls go to the slow path. It would better
+	 * not to conduct any "performance" measurement in this version, since
+	 * it is unfair for us. But still we can if we really need to do the
+	 * measurement in this version, it is not "cheating".
+	 */
+	jmp entry_SYSCALL64_slow_path
+#else
 	/*
 	 * If we need to do entry work or if we guess we'll need to do
 	 * exit work, go straight to the slow path.
@@ -177,6 +189,7 @@ GLOBAL(entry_SYSCALL_64_after_swapgs)
 	movq	PER_CPU_VAR(current_task), %r11
 	testl	$_TIF_WORK_SYSCALL_ENTRY|_TIF_ALLWORK_MASK, TASK_TI_flags(%r11)
 	jnz	entry_SYSCALL64_slow_path
+#endif
 
 entry_SYSCALL_64_fastpath:
 	/*
