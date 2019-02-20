@@ -455,6 +455,7 @@ do {									\
 	__get_user_size(__gu_val, (ptr), (size), __gu_err, -EFAULT);	\
 	__uaccess_end();						\
 	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+	log_copy_from_user((void *)&(x), ptr, size, true);	\
 	__builtin_expect(__gu_err, 0);					\
 })
 
