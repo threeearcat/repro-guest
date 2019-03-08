@@ -24,7 +24,7 @@ static void record_copy_from_user(void *to, const void *from, unsigned long n, b
 		return;
 
 	local_irq_save(flags);
-	log = &per_cpu(copy_from_user_log, smp_processor_id());
+	log = this_cpu_ptr(&copy_from_user_log);
 	idx = log->idx;
 	log->idx = (log->idx + 1) & CFU_INDEX_MASK;
 	buf = log->buf;
