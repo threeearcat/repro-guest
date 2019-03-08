@@ -73,18 +73,22 @@ static void print_entry(struct syscall_log_entry *entry)
 
 void debug_log_syscall_enter(struct syscall_log_entry *entry)
 {
+	int cpu = get_cpu();
 	spin_lock(&debug_spinlock);
-	pr_info("CPU #%d:         syscall_enter\n", smp_processor_id());
+	pr_info("CPU #%d:         syscall_enter\n", cpu());
 	print_entry(entry);
 	spin_unlock(&debug_spinlock);
+	put_cpu();
 }
 
 void debug_log_syscall_exit(struct syscall_log_entry *entry)
 {
+	int cpu = get_cpu();
 	spin_lock(&debug_spinlock);
-	pr_info("CPU #%d:         syscall_exit\n", smp_processor_id());
+	pr_info("CPU #%d:         syscall_exit\n", cpu);
 	print_entry(entry);
 	spin_unlock(&debug_spinlock);
+	put_cpu();
 }
 #else
 void debug_init(void)
