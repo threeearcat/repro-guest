@@ -127,8 +127,10 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 	unsigned long idx, inuse;
 	unsigned long time_max = (unsigned long)-1;
 	unsigned long new_idx;
+	unsigned long flags;
 
-	log = &per_cpu(syscall_log, smp_processor_id());
+	local_irq_save(flags);
+	log = this_cpu_ptr(&syscall_log);
 	do {
 		/* Retrieving idx */
 		do {
@@ -183,6 +185,8 @@ static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long
 	 * its execution. Is this important to our research project? Does
 	 * this give any fun chance to make things difficult?
 	 */
+
+	local_irq_restore(flags);
 
 	return entry;
 }
