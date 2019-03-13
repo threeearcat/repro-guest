@@ -4,7 +4,7 @@ config SYSCALL_LOGGER
 
 config DEBUG_SYSCALL_LOGGER
 	bool "Debug syscall logger"
-	default y
+	default n
 	depends on SYSCALL_LOGGER
 
 config SYSCALL_LOGGER_LOG_STATISTICS
