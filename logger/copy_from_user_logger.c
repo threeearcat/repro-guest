@@ -9,6 +9,7 @@
 #include "copy_from_user_buffer.h"
 
 DEFINE_PER_CPU(struct copy_from_user_log, copy_from_user_log);
+DEFINE_PER_CPU(struct copy_from_user_log, copy_to_user_log);
 
 struct copy_from_user_logger_ops __cfu_ops;
 extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
@@ -21,7 +22,7 @@ static void record_copy_from_user(void *to, const void *from, unsigned long n, b
 	void *buf;
 
 	if (n > DATA_SIZE)
-		return;
+		dump_data = false;
 
 	local_irq_save(flags);
 	log = this_cpu_ptr(&copy_from_user_log);
@@ -42,6 +43,35 @@ static void record_copy_from_user(void *to, const void *from, unsigned long n, b
 		memcpy(entry->data, to, n);
 }
 
+static void record_copy_to_user(void *to, const void *from, unsigned long n, bool dump_data)
+{
+	unsigned long flags, idx;
+	struct copy_from_user_entry *entry;
+	struct copy_from_user_log *log;
+	void *buf;
+
+	if (n > DATA_SIZE)
+		dump_data = false;
+
+	local_irq_save(flags);
+	log = this_cpu_ptr(&copy_to_user_log);
+	idx = log->idx;
+	log->idx = (log->idx + 1) & CFU_INDEX_MASK;
+	buf = log->buf;
+	entry = ((struct copy_from_user_entry *)buf + idx);
+	local_irq_restore(flags);
+
+	entry->to = to;
+	entry->from = from;
+	entry->n = n;
+	entry->timestamp = rdtsc();
+	// No need to log tid. They have same address space.
+	entry->pid = (unsigned long) task_tgid_nr(current);
+	entry->occupied = 1;
+	if (dump_data)
+		memcpy(entry->data, from, n);
+}
+
 int copy_from_user_logger_init(void)
 {
 	int cpu;
@@ -50,7 +80,13 @@ int copy_from_user_logger_init(void)
 
 	for_each_possible_cpu(cpu) {
 		log = &per_cpu(copy_from_user_log, cpu);
+		buf = kzalloc(CFU_BUFFER_SIZE, GFP_KERNEL);
+		log->buf = buf;
+		log->idx = 0;
+	}
 
+	for_each_possible_cpu(cpu) {
+		log = &per_cpu(copy_to_user_log, cpu);
 		buf = kzalloc(CFU_BUFFER_SIZE, GFP_KERNEL);
 		log->buf = buf;
 		log->idx = 0;
@@ -73,8 +109,15 @@ void copy_from_user_logger_exit(void)
 		buf = log->buf;
 		kfree(buf);
 	}
+
+	for_each_possible_cpu(cpu) {
+		log = &per_cpu(copy_to_user_log, cpu);
+		buf = log->buf;
+		kfree(buf);
+	}
 }
 
 struct copy_from_user_logger_ops __cfu_ops = {
     .record_copy_from_user = record_copy_from_user,
+	.record_copy_to_user = record_copy_to_user,
 };
