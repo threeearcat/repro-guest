@@ -34,5 +34,6 @@ struct copy_from_user_entry {
 #define CFU_INDEX_MASK (NR_CFU_INDEX - 1)
 
 DECLARE_PER_CPU(struct copy_from_user_log, copy_from_user_log);
+DECLARE_PER_CPU(struct copy_from_user_log, copy_to_user_log);
 
 #endif /* __COPY_FROM_USER_BUFFER_H */
