@@ -1000,6 +1000,10 @@ asmlinkage long sys_fspick(int dfd, const char __user *path, unsigned int flags)
 asmlinkage long sys_pidfd_send_signal(int pidfd, int sig,
 				       siginfo_t __user *info,
 				       unsigned int flags);
+asmlinkage long sys_copy_from_user_test(char * __user buf);
+asmlinkage long sys_copy_to_user_test(char * __user buf);
+asmlinkage long sys_get_user_test(long * __user buf);
+asmlinkage long sys_put_user_test(long * __user buf);
 
 /*
  * Architecture-specific system calls
