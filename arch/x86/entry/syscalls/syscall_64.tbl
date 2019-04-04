@@ -343,6 +343,10 @@
 332	common	statx			__x64_sys_statx
 333	common	io_pgetevents		__x64_sys_io_pgetevents
 334	common	rseq			__x64_sys_rseq
+342 common copy_from_user_test __x64_sys_copy_from_user_test
+343 common copy_to_user_test __x64_sys_copy_to_user_test
+344 common get_user_test __x64_sys_get_user_test
+345 common put_user_test __x64_sys_put_user_test
 # don't use numbers 387 through 423, add new calls after the last
 # 'common' entry
 424	common	pidfd_send_signal	__x64_sys_pidfd_send_signal
