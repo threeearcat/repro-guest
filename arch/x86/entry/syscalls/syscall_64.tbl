@@ -335,9 +335,12 @@
 326	common	copy_file_range		sys_copy_file_range
 327	64	preadv2			sys_preadv2
 328	64	pwritev2		sys_pwritev2
-329 common race1 sys_race1
-330 common race2 sys_race2
-331 common copy_from_user_test sys_copy_from_user_test
+340 common race1 sys_race1
+341 common race2 sys_race2
+342 common copy_from_user_test sys_copy_from_user_test
+343 common copy_to_user_test sys_copy_to_user_test
+344 common get_user_test sys_get_user_test
+345 common put_user_test sys_put_user_test
 
 #
 # x32-specific system call numbers start at 512 to avoid cache impact

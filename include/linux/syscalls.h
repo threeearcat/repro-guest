@@ -900,5 +900,8 @@ asmlinkage long sys_mlock2(unsigned long start, size_t len, int flags);
 asmlinkage long sys_race1(void);
 asmlinkage long sys_race2(void);
 asmlinkage long sys_copy_from_user_test(char * __user buf);
+asmlinkage long sys_copy_to_user_test(char * __user buf);
+asmlinkage long sys_get_user_test(long * __user buf);
+asmlinkage long sys_put_user_test(long * __user buf);
 
 #endif
