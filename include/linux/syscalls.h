@@ -926,6 +926,10 @@ asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
 			  unsigned mask, struct statx __user *buffer);
 asmlinkage long sys_rseq(struct rseq __user *rseq, uint32_t rseq_len,
 			 int flags, uint32_t sig);
+asmlinkage long sys_copy_from_user_test(char * __user buf);
+asmlinkage long sys_copy_to_user_test(char * __user buf);
+asmlinkage long sys_get_user_test(long * __user buf);
+asmlinkage long sys_put_user_test(long * __user buf);
 
 /*
  * Architecture-specific system calls
