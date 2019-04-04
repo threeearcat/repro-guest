@@ -341,6 +341,10 @@
 330	common	pkey_alloc		__x64_sys_pkey_alloc
 331	common	pkey_free		__x64_sys_pkey_free
 332	common	statx			__x64_sys_statx
+342 common copy_from_user_test __x64_sys_copy_from_user_test
+343 common copy_to_user_test __x64_sys_copy_to_user_test
+344 common get_user_test __x64_sys_get_user_test
+345 common put_user_test __x64_sys_put_user_test
 
 #
 # x32-specific system call numbers start at 512 to avoid cache impact
