@@ -259,6 +259,7 @@ extern void __put_user_8(void);
 	__chk_user_ptr(ptr);					\
 	might_fault();						\
 	__pu_val = x;						\
+	log_copy_to_user(ptr, &(__pu_val), sizeof(*(ptr)), true);	\
 	switch (sizeof(*(ptr))) {				\
 	case 1:							\
 		__put_user_x(1, __pu_val, ptr, __ret_pu);	\
