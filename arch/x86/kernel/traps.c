@@ -253,7 +253,7 @@ do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
 	long error_code, siginfo_t *info)
 {
 	struct task_struct *tsk = current;
-
+	printk("do_trap is called\n");
 
 	if (!do_trap_no_signal(tsk, trapnr, str, regs, error_code))
 		return;
