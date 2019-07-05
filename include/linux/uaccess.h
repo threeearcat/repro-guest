@@ -16,8 +16,7 @@
 #define log_copy_from_user(to, from, n, dump_write)					\
 	do {                                                            \
 		if (copy_from_user_logger_ops != NULL) {                    \
-			if (copy_from_user_check_type(to, from, n) ||           \
-				n < MAX_SIZE) {                                     \
+			if (copy_from_user_check_type(to, from, n) || (n < MAX_SIZE)) { \
 				copy_from_user_logger_ops->                         \
 					record_copy_from_user(to, from, n, dump_write); \
 			} else {                                                \
@@ -29,8 +28,7 @@
 #define log_copy_to_user(to, from, n, dump_write)					\
 	do {                                                            \
 		if (copy_from_user_logger_ops != NULL) {                    \
-			if (copy_from_user_check_type(to, from, n) ||           \
-				n < MAX_SIZE) {                                     \
+			if (copy_from_user_check_type(to, from, n) || (n < MAX_SIZE)) { \
 				copy_from_user_logger_ops->                         \
 					record_copy_to_user(to, from, n, dump_write); \
 			} else {                                                \
