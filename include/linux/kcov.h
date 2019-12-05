@@ -25,10 +25,33 @@ enum kcov_mode {
 void kcov_task_init(struct task_struct *t);
 void kcov_task_exit(struct task_struct *t);
 
+/* See Documentation/dev-tools/kcov.rst for usage details. */
+void kcov_remote_start(u64 handle);
+void kcov_remote_stop(void);
+u64 kcov_common_handle(void);
+
+static inline void kcov_remote_start_common(u64 id)
+{
+	kcov_remote_start(kcov_remote_handle(KCOV_SUBSYSTEM_COMMON, id));
+}
+
+static inline void kcov_remote_start_usb(u64 id)
+{
+	kcov_remote_start(kcov_remote_handle(KCOV_SUBSYSTEM_USB, id));
+}
+
 #else
 
 static inline void kcov_task_init(struct task_struct *t) {}
 static inline void kcov_task_exit(struct task_struct *t) {}
+static inline void kcov_remote_start(u64 handle) {}
+static inline void kcov_remote_stop(void) {}
+static inline u64 kcov_common_handle(void)
+{
+	return 0;
+}
+static inline void kcov_remote_start_common(u64 id) {}
+static inline void kcov_remote_start_usb(u64 id) {}
 
 #endif /* CONFIG_KCOV */
 #endif /* _LINUX_KCOV_H */
