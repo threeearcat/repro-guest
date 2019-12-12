@@ -1068,6 +1068,9 @@ struct task_struct {
 
 	/* KCOV sequence number: */
 	int				kcov_sequence;
+
+	/* Collect coverage from interrupt context: */
+	bool				kcov_interrupt;
 #endif
 
 #ifdef CONFIG_MEMCG
