@@ -50,6 +50,7 @@
 #include <linux/uaccess.h>
 #include <linux/sched/isolation.h>
 #include <linux/nmi.h>
+#include <linux/kcov.h>
 
 #include "workqueue_internal.h"
 
@@ -2266,7 +2267,9 @@ __acquires(&pool->lock)
 	 */
 	lockdep_invariant_state(true);
 	trace_workqueue_execute_start(work);
+	kcov_remote_start_common((unsigned long)worker->current_func & 0xffffffff);
 	worker->current_func(work);
+	kcov_remote_stop();
 	/*
 	 * While we must be careful to not use "work" after this, the trace
 	 * point will only record its address.
