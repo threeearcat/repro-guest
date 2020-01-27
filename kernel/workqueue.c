@@ -2193,29 +2193,34 @@ static int worker_thread(void *__worker)
 	struct worker_pool *pool = worker->pool;
     u64 id;
 
-    id = -1;
-    if (pool->cpu != -1)
-        id = (pool->cpu << 2) | worker->id;
-
-    printk(KERN_INFO "Workqueue #%llu (%d:%d) is spawned\n", id, pool->cpu, worker->id);
+    if (pool->cpu >= 0) {
+        // Bound workqueue
+        id = (pool->cpu << 9) | worker->id;
+        printk(KERN_INFO "Workqueue #%llx (%d:%d) is spawned\n", id, pool->cpu, worker->id);
+    } else {
+        // Unbound workqueue
+        id = 0x80000000 | (pool->id << 9) | worker->id;
+        printk(KERN_INFO "Workqueue #%llx u(%d:%d) is spawned\n", id, pool->id, worker->id);
+    }
 
 	/* tell the scheduler that this is a workqueue worker */
 	worker->task->flags |= PF_WQ_WORKER;
 woke_up:
-	if (id != -1)
-		kcov_remote_start_common(id);
+    kcov_remote_start_common(id);
 	spin_lock_irq(&pool->lock);
 
 	/* am I supposed to die? */
 	if (unlikely(worker->flags & WORKER_DIE)) {
 		spin_unlock_irq(&pool->lock);
-		if (id != -1)
-			kcov_remote_stop();
+        kcov_remote_stop();
 
 		WARN_ON_ONCE(!list_empty(&worker->entry));
 		worker->task->flags &= ~PF_WQ_WORKER;
 
-        printk(KERN_INFO "Workqueue #%llu (%d:%d) is dead\n", id, pool->cpu, worker->id);
+        if (pool->cpu >= 0)
+            printk(KERN_INFO "Workqueue #%llx (%d:%d) is dead\n", id, pool->cpu, worker->id);
+        else
+            printk(KERN_INFO "Workqueue #%llx u(%d:%d) is dead\n", id, pool->id, worker->id);
 
 		set_task_comm(worker->task, "kworker/dying");
 		ida_simple_remove(&pool->worker_ida, worker->id);
@@ -2280,8 +2285,7 @@ sleep:
 	worker_enter_idle(worker);
 	__set_current_state(TASK_IDLE);
 	spin_unlock_irq(&pool->lock);
-	if (id != -1)
-		kcov_remote_stop();
+    kcov_remote_stop();
 	schedule();
 	goto woke_up;
 }
