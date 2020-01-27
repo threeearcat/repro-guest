@@ -2191,20 +2191,15 @@ static int worker_thread(void *__worker)
 {
 	struct worker *worker = __worker;
 	struct worker_pool *pool = worker->pool;
-    u64 id = 0;
+    u64 id;
 
     if (pool->cpu >= 0) {
         // Bound workqueue
-        id = (pool->cpu << 10) | worker->id;
-        if (pool->attrs->nice < 0) {
-            id |= 1 << 9;
-            printk(KERN_INFO "Workqueue #%llx (%d:%d)H is spawned\n", id, pool->cpu, worker->id);
-        } else {
-            printk(KERN_INFO "Workqueue #%llx (%d:%d) is spawned\n", id, pool->cpu, worker->id);
-        }
+        id = (pool->cpu << 9) | worker->id;
+        printk(KERN_INFO "Workqueue #%llx (%d:%d) is spawned\n", id, pool->cpu, worker->id);
     } else {
         // Unbound workqueue
-        id = 0x80000000 | (pool->id << 10) | worker->id;
+        id = 0x80000000 | (pool->id << 9) | worker->id;
         printk(KERN_INFO "Workqueue #%llx u(%d:%d) is spawned\n", id, pool->id, worker->id);
     }
 
