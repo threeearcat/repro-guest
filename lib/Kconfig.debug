@@ -2074,6 +2074,8 @@ config TEST_MEMINIT
 
 	  If unsure, say N.
 
+endif # RUNTIME_TESTING_MENU
+
 config KCOV_IRQ_AREA_SIZE
 	hex "Size of interrupt coverage collection area in words"
 	depends on KCOV
@@ -2082,8 +2084,6 @@ config KCOV_IRQ_AREA_SIZE
 	  KCOV uses preallocated per-cpu areas to collect coverage from
 	  interrupts. This specifies the size of those areas in the number
 	  of unsigned long words.
-
-endif # RUNTIME_TESTING_MENU
 
 config MEMTEST
 	bool "Memtest"
