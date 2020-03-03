@@ -169,7 +169,9 @@ static inline bool __rcu_reclaim(const char *rn, struct rcu_head *head)
 		return true;
 	} else {
 		RCU_TRACE(trace_rcu_invoke_callback(rn, head);)
+		kcov_remote_start_common(offset & 0xffffffff);
 		head->func(head);
+		kcov_remote_stop();
 		rcu_lock_release(&rcu_callback_map);
 		return false;
 	}
