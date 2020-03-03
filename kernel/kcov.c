@@ -152,7 +152,7 @@ static void kcov_remote_area_put(struct kcov_remote_area *area,
 
 static bool check_kcov_mode(enum kcov_mode needed_mode, struct task_struct *t)
 {
-	enum kcov_mode mode;
+	unsigned int mode;
 
 	/*
 	 * We are interested in code coverage as a function of a syscall inputs,
@@ -522,6 +522,21 @@ static int kcov_get_mode(unsigned long arg)
 		return -EINVAL;
 }
 
+/*
+ * Fault in a lazily-faulted vmalloc area before it can be used by
+ * __santizer_cov_trace_pc(), to avoid recursion issues if any code on the
+ * vmalloc fault handling path is instrumented.
+ */
+static void kcov_fault_in_area(struct kcov *kcov)
+{
+	unsigned long stride = PAGE_SIZE / sizeof(unsigned long);
+	unsigned long *area = kcov->area;
+	unsigned long offset;
+
+	for (offset = 0; offset < kcov->size; offset += stride)
+		READ_ONCE(area[offset]);
+}
+
 static inline bool kcov_check_handle(u64 handle, bool common_valid,
 				bool uncommon_valid, bool zero_valid)
 {
@@ -584,6 +599,7 @@ static int kcov_ioctl_locked(struct kcov *kcov, unsigned int cmd,
 		mode = kcov_get_mode(arg);
 		if (mode < 0)
 			return mode;
+		kcov_fault_in_area(kcov);
 		kcov->mode = mode;
 		kcov_start(t, kcov->size, kcov->area, kcov->mode,
 				kcov->sequence);
