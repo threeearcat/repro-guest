@@ -22,6 +22,7 @@
 #include <linux/uaccess.h>
 #include <linux/kcov.h>
 #include <linux/log2.h>
+#include <linux/overflow.h>
 #include <asm/setup.h>
 
 #define kcov_debug(fmt, ...) pr_debug("%s: " fmt, __func__, ##__VA_ARGS__)
