@@ -16,60 +16,30 @@ extern struct copy_from_user_logger_ops *copy_from_user_logger_ops;
 
 static void record_copy_from_user(void *to, const void *from, unsigned long n, bool dump_data)
 {
-	unsigned long flags, idx;
-	struct copy_from_user_entry *entry;
-	struct copy_from_user_log *log;
-	void *buf;
-
-	if (n > DATA_SIZE)
-		dump_data = false;
-
-	local_irq_save(flags);
-	log = this_cpu_ptr(&copy_from_user_log);
-	idx = log->idx;
-	log->idx = (log->idx + 1) & CFU_INDEX_MASK;
-	buf = log->buf;
-	entry = ((struct copy_from_user_entry *)buf + idx);
-	local_irq_restore(flags);
-
-	entry->to = to;
-	entry->from = from;
-	entry->n = n;
-	entry->timestamp = rdtsc();
-	// No need to log tid. They have same address space.
-	entry->pid = (unsigned long) task_tgid_nr(current);
-	entry->occupied = 1;
-	if (dump_data)
-		memcpy(entry->data, to, n);
+    char buf[2048];
+    unsigned char *data = to;
+    int off, i;
+ 
+    off = sprintf(buf, "CFU %lx -> %lx %ld", (unsigned long)from, (unsigned long)to, n);
+    if (dump_data) {
+        for (i = 0; i < n; i++)
+            off += sprintf(buf+off, " %d", data[i]);
+    }
+    trace_printk("%s\n", buf);
 }
 
 static void record_copy_to_user(void *to, const void *from, unsigned long n, bool dump_data)
 {
-	unsigned long flags, idx;
-	struct copy_from_user_entry *entry;
-	struct copy_from_user_log *log;
-	void *buf;
-
-	if (n > DATA_SIZE)
-		dump_data = false;
-
-	local_irq_save(flags);
-	log = this_cpu_ptr(&copy_to_user_log);
-	idx = log->idx;
-	log->idx = (log->idx + 1) & CFU_INDEX_MASK;
-	buf = log->buf;
-	entry = ((struct copy_from_user_entry *)buf + idx);
-	local_irq_restore(flags);
-
-	entry->to = to;
-	entry->from = from;
-	entry->n = n;
-	entry->timestamp = rdtsc();
-	// No need to log tid. They have same address space.
-	entry->pid = (unsigned long) task_tgid_nr(current);
-	entry->occupied = 1;
-	if (dump_data)
-		memcpy(entry->data, from, n);
+    char buf[2048];
+    unsigned char *data = from;
+    int off, i;
+ 
+    off = sprintf(buf, "CTU %lx -> %lx %ld", (unsigned long)from, (unsigned long)to, n);
+    if (dump_data) {
+        for (i = 0; i < n; i++)
+            off += sprintf(buf+off, " %d", data[i]);
+    }
+    trace_printk("%s\n", buf);
 }
 
 int copy_from_user_logger_init(void)
