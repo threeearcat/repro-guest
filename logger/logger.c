@@ -122,97 +122,11 @@ static void __exit syscall_logger_exit(void)
 /* Should be called with allocated entry */
 static struct syscall_log_entry * syscall_logger_log_syscall_enter(unsigned long nr, const struct pt_regs *regs)
 {
-	struct syscall_log *log;
-	struct syscall_log_entry *entry;
-	unsigned long idx, inuse;
-	unsigned long time_max = (unsigned long)-1;
-	unsigned long new_idx;
-	unsigned long flags;
-
-	local_irq_save(flags);
-	log = this_cpu_ptr(&syscall_log);
-	do {
-		/* Retrieving idx */
-		do {
-			idx = log->idx;
-			new_idx = (idx + 1) & MAX_ENTRY_MASK;
-		} while(cmpxchg(&log->idx, idx, new_idx) != idx);
-
-		/* Get the address of the corresponding entry. */
-		entry = ((struct syscall_log_entry *)(log->buf) + idx);
-
-		/* if entry is used by another syscall, skip this. If the
-		 * syscall holding the entry lives for long time, take away
-		 * this entry.
-		 */
-		inuse = cmpxchg(&entry->inuse, 0, 1);
-		if (inuse)
-			entry->skipped++;
-	} while (inuse && entry->skipped < 3);
-
-	spin_lock(&entry_lock);
-	// I'm currently not thinking of namespaces and challenges related
-	// to it. If there is any challenge or something, I seriously need
-	// to consider it.
-	entry->pid = (unsigned long) task_tgid_nr(current);
-	entry->tid = (unsigned long) task_pid_nr(current);
-
-	/* See do_syscall_64(). */
-	entry->nr = nr;
-	entry->rdi = regs->di;
-	entry->rsi = regs->si;
-	entry->rdx = regs->dx;
-	entry->r10 = regs->r10;
-	entry->r8 = regs->r8;
-	entry->r9 = regs->r9;
-
-	entry->skipped = 0;
-	entry->entry_time = rdtsc();
-	/* Assign time_max to exit_time to handle the situation that a
-	 * kernel dies before this syscall return
-	 */
-	entry->exit_time = time_max;
-	spin_unlock(&entry_lock);
-
-#ifdef CONFIG_SYSCALL_LOGGER_LOG_STATISTICS
-	/* Increase an execution number to record statistics. */
-	(log->stats)[entry->nr]++;
-#endif
-
-	debug_log_syscall_enter(entry);
-
-	/* It is possible that a syscall is migrated by a scheduler during
-	 * its execution. Is this important to our research project? Does
-	 * this give any fun chance to make things difficult?
-	 */
-
-	local_irq_restore(flags);
-
-	return entry;
+    return NULL;
 }
 
 static void syscall_logger_log_syscall_exit(struct syscall_log_entry *entry, unsigned long ret)
 {
-	unsigned long time_max = (unsigned long)-1;
-
-	spin_lock(&entry_lock);
-	if (entry->tid != task_pid_nr(current))
-		// This syscall spends a lot of time and another syscall take
-		// this entry.
-		goto out;
-
-	debug_log_syscall_exit(entry);
-	if (entry->exit_time != time_max || !entry->inuse)
-		// Another syscall writes exit_time before this syscall release
-		// this entry.
-		BUG();
-
-	entry->ret = ret;
-	entry->exit_time = rdtsc();
-	/* Now we have the full-filled entry. We can release the entry */
-	entry->inuse = 0;
- out:
-	spin_unlock(&entry_lock);
 }
 
 #ifdef CONFIG_COPY_FROM_USER_LOGGER
