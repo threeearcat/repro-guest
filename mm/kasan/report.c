@@ -166,6 +166,7 @@ static void kasan_start_report(unsigned long *flags)
 	/*
 	 * Make sure we don't end up in loop.
 	 */
+	trace_printk("END");
 	kasan_disable_current();
 	spin_lock_irqsave(&report_lock, *flags);
 	pr_err("==================================================================\n");
