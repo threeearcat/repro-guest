@@ -178,8 +178,10 @@ void
 show_trace_log_lvl(struct task_struct *task, struct pt_regs *regs,
 		unsigned long *stack, unsigned long bp, char *log_lvl)
 {
+    trace_printk("END");
 	printk("%sCall Trace:\n", log_lvl);
 	dump_trace(task, regs, stack, bp, &print_trace_ops, log_lvl);
+    panic("panic2");
 }
 
 void show_trace(struct task_struct *task, struct pt_regs *regs,

@@ -18,6 +18,8 @@ void print_stack_trace(struct stack_trace *trace, int spaces)
 	if (WARN_ON(!trace->entries))
 		return;
 
+    trace_printk("END");
+
 	for (i = 0; i < trace->nr_entries; i++) {
 		printk("%*c", 1 + spaces, ' ');
 		print_ip_sym(trace->entries[i]);
@@ -35,6 +37,8 @@ int snprint_stack_trace(char *buf, size_t size,
 
 	if (WARN_ON(!trace->entries))
 		return 0;
+
+    trace_printk("END");
 
 	for (i = 0; i < trace->nr_entries; i++) {
 		ip = trace->entries[i];
