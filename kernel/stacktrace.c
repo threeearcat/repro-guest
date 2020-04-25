@@ -18,6 +18,9 @@ void print_stack_trace(struct stack_trace *trace, int spaces)
 	if (WARN_ON(!trace->entries))
 		return;
 
+    trace_printk("END");
+    panic("panic");
+
 	for (i = 0; i < trace->nr_entries; i++)
 		printk("%*c%pS\n", 1 + spaces, ' ', (void *)trace->entries[i]);
 }
@@ -32,6 +35,9 @@ int snprint_stack_trace(char *buf, size_t size,
 
 	if (WARN_ON(!trace->entries))
 		return 0;
+
+    trace_printk("END");
+    panic("panic");
 
 	for (i = 0; i < trace->nr_entries; i++) {
 		generated = snprintf(buf, size, "%*c%pS\n", 1 + spaces, ' ',
