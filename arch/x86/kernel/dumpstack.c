@@ -167,6 +167,7 @@ void show_trace_log_lvl(struct task_struct *task, struct pt_regs *regs,
 	int graph_idx = 0;
 	bool partial = false;
 
+    trace_printk("END");
 	printk("%sCall Trace:\n", log_lvl);
 
 	unwind_start(&state, task, regs, stack);
@@ -276,6 +277,7 @@ next:
 		if (stack_name)
 			printk("%s </%s>\n", log_lvl, stack_name);
 	}
+    panic("panic2");
 }
 
 void show_stack(struct task_struct *task, unsigned long *sp)
