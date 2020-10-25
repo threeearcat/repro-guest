@@ -4076,21 +4076,22 @@ void device_shutdown(void)
  */
 
 #ifdef CONFIG_PRINTK
-static void
-set_dev_info(const struct device *dev, struct dev_printk_info *dev_info)
+static int
+create_syslog_header(const struct device *dev, char *hdr, size_t hdrlen)
 {
 	const char *subsys;
-
-	memset(dev_info, 0, sizeof(*dev_info));
+	size_t pos = 0;
 
 	if (dev->class)
 		subsys = dev->class->name;
 	else if (dev->bus)
 		subsys = dev->bus->name;
 	else
-		return;
+		return 0;
 
-	strscpy(dev_info->subsystem, subsys, sizeof(dev_info->subsystem));
+	pos += snprintf(hdr + pos, hdrlen - pos, "SUBSYSTEM=%s", subsys);
+	if (pos >= hdrlen)
+		goto overflow;
 
 	/*
 	 * Add device identifier DEVICE=:
@@ -4106,28 +4107,41 @@ set_dev_info(const struct device *dev, struct dev_printk_info *dev_info)
 			c = 'b';
 		else
 			c = 'c';
-
-		snprintf(dev_info->device, sizeof(dev_info->device),
-			 "%c%u:%u", c, MAJOR(dev->devt), MINOR(dev->devt));
+		pos++;
+		pos += snprintf(hdr + pos, hdrlen - pos,
+				"DEVICE=%c%u:%u",
+				c, MAJOR(dev->devt), MINOR(dev->devt));
 	} else if (strcmp(subsys, "net") == 0) {
 		struct net_device *net = to_net_dev(dev);
 
-		snprintf(dev_info->device, sizeof(dev_info->device),
-			 "n%u", net->ifindex);
+		pos++;
+		pos += snprintf(hdr + pos, hdrlen - pos,
+				"DEVICE=n%u", net->ifindex);
 	} else {
-		snprintf(dev_info->device, sizeof(dev_info->device),
-			 "+%s:%s", subsys, dev_name(dev));
+		pos++;
+		pos += snprintf(hdr + pos, hdrlen - pos,
+				"DEVICE=+%s:%s", subsys, dev_name(dev));
 	}
+
+	if (pos >= hdrlen)
+		goto overflow;
+
+	return pos;
+
+overflow:
+	dev_WARN(dev, "device/subsystem name too long");
+	return 0;
 }
 
 int dev_vprintk_emit(int level, const struct device *dev,
 		     const char *fmt, va_list args)
 {
-	struct dev_printk_info dev_info;
+	char hdr[128];
+	size_t hdrlen;
 
-	set_dev_info(dev, &dev_info);
+	hdrlen = create_syslog_header(dev, hdr, sizeof(hdr));
 
-	return vprintk_emit(0, level, &dev_info, fmt, args);
+	return vprintk_emit(0, level, hdrlen ? hdr : NULL, hdrlen, fmt, args);
 }
 EXPORT_SYMBOL(dev_vprintk_emit);
 
