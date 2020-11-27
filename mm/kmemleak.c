@@ -390,7 +390,7 @@ static struct kmemleak_object *lookup_object(unsigned long ptr, int alias)
 		else if (object->pointer == ptr || alias)
 			return object;
 		else {
-			kmemleak_warn("Found object by alias at 0x%08lx\n",
+			printk(KERN_INFO "Found object by alias at 0x%08lx\n",
 				      ptr);
 			dump_object_info(object);
 			break;
